@@ -1,6 +1,11 @@
-﻿tests/
-bin/
-obj/
+**/tests/
+**/bin/
+**/obj/
 Publish/
 *.user
 .vs/
+.github/
+.gitignore
+.dockerignore
+*.md
+TestResults/

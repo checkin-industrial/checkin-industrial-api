@@ -2,10 +2,10 @@
 FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
-COPY AppTurismoIndustrial.Api.csproj .
+COPY src/AppTurismoIndustrial.Api.csproj .
 RUN dotnet restore AppTurismoIndustrial.Api.csproj
 
-COPY . .
+COPY src/. .
 RUN dotnet publish AppTurismoIndustrial.Api.csproj -c Release -o /app/publish --no-restore
 
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────

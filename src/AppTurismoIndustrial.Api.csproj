@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>AppTurismoIndustrial.Api</RootNamespace>
+    <AssemblyName>AppTurismoIndustrial.Api</AssemblyName>
+    <DefaultItemExcludes>$(DefaultItemExcludes);tests/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.1" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.1">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.3.1" />
+    <PackageReference Include="CsvHelper" Version="30.0.0" />
+  </ItemGroup>
+
+  <!--
+    Global usings: cada feature tem seu namespace AppTurismoIndustrial.Api.Features.<Feature>.
+    Inclui-las aqui evita ter que repetir `using` em todos os arquivos consumidores.
+    Ver Features/CLAUDE.md para a convencao.
+  -->
+  <ItemGroup>
+    <Using Include="AppTurismoIndustrial.Api.Features.Empresas" />
+    <Using Include="AppTurismoIndustrial.Api.Features.Empresas.Importacao" />
+    <Using Include="AppTurismoIndustrial.Api.Features.PontosInstitucionais" />
+    <Using Include="AppTurismoIndustrial.Api.Features.PontosInstitucionais.Importacao" />
+    <Using Include="AppTurismoIndustrial.Api.Features.TelefonesUteis" />
+    <Using Include="AppTurismoIndustrial.Api.Features.Analytics" />
+    <Using Include="AppTurismoIndustrial.Api.Features.Geocoding" />
+    <Using Include="AppTurismoIndustrial.Api.Infrastructure.Persistence" />
+  </ItemGroup>
+
+</Project>

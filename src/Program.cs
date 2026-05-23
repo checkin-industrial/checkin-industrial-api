@@ -71,13 +71,21 @@ builder.Services.AddRateLimiter(options =>
 });
 
 // ─── Autenticacao via API Key ───────────────────────────────────────────────
-// Header X-Api-Key. Se Auth:ApiKey nao estiver configurado, todos os requests
-// caem como anonimos (util pra dev). Em prod, definir via env Auth__ApiKey.
+// Header X-Api-Key. Em Development, se Auth:ApiKey vazio os requests caem como
+// anonimos (util pra rodar local sem config). Em prod, fail-fast: o startup
+// aborta se Auth:ApiKey nao for definido (evita endpoints de escrita abertos).
+var apiKey = builder.Configuration["Auth:ApiKey"] ?? string.Empty;
+if (string.IsNullOrWhiteSpace(apiKey) && !builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException(
+        "Auth:ApiKey nao esta configurado. Em prod, defina Auth__ApiKey via env (ex: 'openssl rand -hex 32'). " +
+        "Em dev, defina ASPNETCORE_ENVIRONMENT=Development para rodar sem auth.");
+}
 builder.Services
     .AddAuthentication(ApiKeyAuthenticationOptions.Scheme)
     .AddScheme<ApiKeyAuthenticationOptions, ApiKeyAuthenticationHandler>(
         ApiKeyAuthenticationOptions.Scheme,
-        options => options.ApiKey = builder.Configuration["Auth:ApiKey"] ?? string.Empty);
+        options => options.ApiKey = apiKey);
 builder.Services.AddAuthorization();
 
 // ─── Health checks ──────────────────────────────────────────────────────────
@@ -86,9 +94,16 @@ builder.Services
     .AddDbContextCheck<AppDbContext>(name: "postgres", tags: new[] { "ready" });
 
 // ─── CORS ───────────────────────────────────────────────────────────────────
-// Whitelist via config (Cors:AllowedOrigins). Em ambiente sem origens configuradas
-// (ex.: smoke test local), permite qualquer origem com warning no log.
+// Whitelist via config (Cors:AllowedOrigins). Em Development sem origens configuradas,
+// permite qualquer origem com warning. Em prod, fail-fast: o startup aborta se nao
+// houver whitelist configurada (evita CORS aberto silenciosamente).
 var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+if (allowedOrigins.Length == 0 && !builder.Environment.IsDevelopment())
+{
+    throw new InvalidOperationException(
+        "Cors:AllowedOrigins nao esta configurado. Em prod, defina Cors__AllowedOrigins__0, Cors__AllowedOrigins__1, ... " +
+        "para evitar CORS aberto. Em dev, defina ASPNETCORE_ENVIRONMENT=Development.");
+}
 builder.Services.AddCors(options =>
 {
     options.AddDefaultPolicy(policy =>
@@ -99,6 +114,7 @@ builder.Services.AddCors(options =>
         }
         else
         {
+            // Caminho so atingivel em Development; em prod o throw acima ja abortou.
             policy.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
         }
     });
@@ -121,14 +137,14 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
-// Aviso se CORS esta aberto em prod por config faltante
-if (allowedOrigins.Length == 0 && !app.Environment.IsDevelopment())
+// Em Development com CORS/Auth nao configurados, logar so de aviso (em prod o startup ja abortou).
+if (allowedOrigins.Length == 0)
 {
-    app.Logger.LogWarning("CORS aberto (AllowAnyOrigin) - configure Cors:AllowedOrigins via env Cors__AllowedOrigins__0/1/...");
+    app.Logger.LogWarning("CORS aberto (AllowAnyOrigin) - so e seguro em Development.");
 }
-if (string.IsNullOrWhiteSpace(builder.Configuration["Auth:ApiKey"]) && !app.Environment.IsDevelopment())
+if (string.IsNullOrWhiteSpace(apiKey))
 {
-    app.Logger.LogWarning("Auth:ApiKey nao configurado - endpoints de escrita estao desprotegidos. Configure via env Auth__ApiKey.");
+    app.Logger.LogWarning("Auth:ApiKey nao configurado - endpoints de escrita estao desprotegidos.");
 }
 
 // ─── Migrations automaticas no startup ──────────────────────────────────────
@@ -140,15 +156,21 @@ using (var scope = app.Services.CreateScope())
 }
 
 // ─── Pipeline ───────────────────────────────────────────────────────────────
-// Forwarded headers (Railway/proxy reverso devolve real IP em X-Forwarded-For)
+// ForwardedHeaders: por padrao o ASP.NET Core so confia em loopback como proxy,
+// entao em Railway/Docker behind any other IP o X-Forwarded-For seria ignorado.
+// Como nao temos como saber o IP do proxy do PaaS de antemao e o app sempre
+// roda atras de um proxy gerenciado, limpamos KnownNetworks/KnownProxies para
+// aceitar qualquer proxy upstream. (Aceitavel porque a infra controla quem
+// pode falar HTTP direto com o app - no Railway, so o LB chega ate aqui.)
 app.UseForwardedHeaders(new ForwardedHeadersOptions
 {
-    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto
+    ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto,
+    KnownIPNetworks = { },
+    KnownProxies = { },
 });
 
 app.UseProblemDetailsMiddleware();
 app.UseResponseCompression();
-app.UseRateLimiter();
 
 if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
 {
@@ -178,8 +200,11 @@ else
     app.UseStaticFiles();
 }
 
+// Auth precisa rodar ANTES do rate limiter para que o particionador
+// veja httpContext.User.Identity.IsAuthenticated e aplique o limite correto.
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseRateLimiter();
 app.UseOutputCache();
 
 // ─── Endpoints ──────────────────────────────────────────────────────────────

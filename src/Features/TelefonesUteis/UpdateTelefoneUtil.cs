@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.TelefonesUteis;
 
 public static class UpdateTelefoneUtil
 {
-    public static RouteGroupBuilder MapUpdateTelefoneUtil(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapUpdateTelefoneUtil(this RouteGroupBuilder group)
     {
-        group.MapPut("/{id:guid}", Handle)
+        return group.MapPut("/{id:guid}", Handle)
             .WithName(nameof(UpdateTelefoneUtil));
-        return group;
     }
 
     private static async Task<Results<NoContent, NotFound>> Handle(

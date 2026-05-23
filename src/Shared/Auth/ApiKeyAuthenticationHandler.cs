@@ -1,4 +1,6 @@
 using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Options;
@@ -34,19 +36,35 @@ public sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAu
     {
         // Se a config nao tem ApiKey definida, o handler deixa o pipeline anonimo
         // (Authorization vai decidir 401 se a rota exigir). Isso evita "lockout"
-        // acidental em dev quando esquece de setar a env.
+        // acidental em dev quando esquece de setar a env. Em prod, o startup ja
+        // aborta se Auth:ApiKey estiver vazio (ver Program.cs).
         if (string.IsNullOrWhiteSpace(Options.ApiKey))
         {
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
-        if (!Request.Headers.TryGetValue(ApiKeyAuthenticationOptions.HeaderName, out var provided)
-            || string.IsNullOrWhiteSpace(provided))
+        if (!Request.Headers.TryGetValue(ApiKeyAuthenticationOptions.HeaderName, out var headerValues))
         {
             return Task.FromResult(AuthenticateResult.NoResult());
         }
 
-        if (!CryptographicEquals(provided!, Options.ApiKey))
+        // Multiplos X-Api-Key na mesma request e suspeito (cliente confuso ou tentativa
+        // de bypass via concatenacao "a,b"). Rejeita explicitamente.
+        if (headerValues.Count != 1)
+        {
+            return Task.FromResult(AuthenticateResult.Fail("X-Api-Key invalido (esperado exatamente 1 valor)."));
+        }
+
+        var provided = headerValues[0];
+        if (string.IsNullOrWhiteSpace(provided))
+        {
+            return Task.FromResult(AuthenticateResult.NoResult());
+        }
+
+        // Comparacao tempo-constante via API nativa do framework (resistente a timing attacks).
+        var providedBytes = Encoding.UTF8.GetBytes(provided);
+        var expectedBytes = Encoding.UTF8.GetBytes(Options.ApiKey);
+        if (!CryptographicOperations.FixedTimeEquals(providedBytes, expectedBytes))
         {
             return Task.FromResult(AuthenticateResult.Fail("API Key invalida."));
         }
@@ -56,20 +74,5 @@ public sealed class ApiKeyAuthenticationHandler : AuthenticationHandler<ApiKeyAu
             ApiKeyAuthenticationOptions.Scheme);
         var ticket = new AuthenticationTicket(new ClaimsPrincipal(identity), ApiKeyAuthenticationOptions.Scheme);
         return Task.FromResult(AuthenticateResult.Success(ticket));
-    }
-
-    /// <summary>Comparacao em tempo constante para evitar timing attacks.</summary>
-    private static bool CryptographicEquals(string a, string b)
-    {
-        if (a.Length != b.Length)
-        {
-            return false;
-        }
-        var diff = 0;
-        for (var i = 0; i < a.Length; i++)
-        {
-            diff |= a[i] ^ b[i];
-        }
-        return diff == 0;
     }
 }

@@ -125,8 +125,8 @@ Variaveis de ambiente (todas overridable via `__` notation .NET):
 | Env var | Default (appsettings) | O que faz |
 |---|---|---|
 | `ConnectionStrings__DefaultConnectionTurismo` | `Server=localhost;...Password=postgres` | Connection string Postgres |
-| `Auth__ApiKey` | `""` (vazio) | API Key esperado no header `X-Api-Key` em endpoints de escrita. **Se vazio, writes ficam abertos** (so seguro em dev). |
-| `Cors__AllowedOrigins__0`, `__1`, ... | `localhost:5173`, `localhost:8081` | Whitelist de origens permitidas. Se array vazio, libera tudo + warning. |
+| `Auth__ApiKey` | `""` (vazio) | API Key esperado no header `X-Api-Key` em endpoints de escrita. **Em prod, vazio aborta o startup**; em dev, writes ficam abertos com warning. |
+| `Cors__AllowedOrigins__0`, `__1`, ... | `http://localhost:5173`, `http://localhost:8081` | Whitelist de origens permitidas (com scheme `http://`/`https://`). **Em prod, array vazio aborta o startup**; em dev, libera tudo com warning. |
 | `RateLimit__AnonymousPermitPerMinute` | 60 | Reqs/min para anonimos (reads do widget) |
 | `RateLimit__AuthenticatedPermitPerMinute` | 300 | Reqs/min para clientes autenticados (admin) |
 | `OutputCache__ReadEndpointTtlSeconds` | 60 | TTL do output cache para reads |

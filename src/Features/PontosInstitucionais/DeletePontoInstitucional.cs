@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.PontosInstitucionais;
 
 public static class DeletePontoInstitucional
 {
-    public static RouteGroupBuilder MapDeletePontoInstitucional(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapDeletePontoInstitucional(this RouteGroupBuilder group)
     {
-        group.MapDelete("/{id:guid}", Handle)
+        return group.MapDelete("/{id:guid}", Handle)
             .WithName(nameof(DeletePontoInstitucional));
-        return group;
     }
 
     private static async Task<Results<NoContent, NotFound>> Handle(

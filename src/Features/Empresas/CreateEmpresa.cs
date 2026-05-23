@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.Empresas;
 
 public static class CreateEmpresa
 {
-    public static RouteGroupBuilder MapCreateEmpresa(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapCreateEmpresa(this RouteGroupBuilder group)
     {
-        group.MapPost("/", Handle)
+        return group.MapPost("/", Handle)
             .WithName(nameof(CreateEmpresa));
-        return group;
     }
 
     private static async Task<Results<Created<DTORespostaEmpresa>, Conflict<object>>> Handle(

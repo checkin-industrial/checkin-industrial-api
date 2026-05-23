@@ -6,12 +6,11 @@ namespace AppTurismoIndustrial.Api.Features.Empresas.Importacao;
 
 public static class ExportEmpresasCsv
 {
-    public static RouteGroupBuilder MapExportEmpresasCsv(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapExportEmpresasCsv(this RouteGroupBuilder group)
     {
-        group.MapGet("/empresas/exportar", Handle)
+        return group.MapGet("/empresas/exportar", Handle)
             .WithName(nameof(ExportEmpresasCsv))
             .Produces(StatusCodes.Status200OK, contentType: "text/csv");
-        return group;
     }
 
     private static async Task<FileContentHttpResult> Handle(

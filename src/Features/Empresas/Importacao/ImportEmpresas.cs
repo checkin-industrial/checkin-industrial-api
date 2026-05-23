@@ -7,12 +7,11 @@ public static class ImportEmpresas
 {
     private const long MaxFileSize = 100 * 1024 * 1024; // 100 MB
 
-    public static RouteGroupBuilder MapImportEmpresas(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapImportEmpresas(this RouteGroupBuilder group)
     {
-        group.MapPost("/empresas", Handle)
+        return group.MapPost("/empresas", Handle)
             .WithName(nameof(ImportEmpresas))
             .DisableAntiforgery();
-        return group;
     }
 
     /// <summary>

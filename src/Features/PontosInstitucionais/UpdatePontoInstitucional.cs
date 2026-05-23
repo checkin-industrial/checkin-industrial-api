@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.PontosInstitucionais;
 
 public static class UpdatePontoInstitucional
 {
-    public static RouteGroupBuilder MapUpdatePontoInstitucional(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapUpdatePontoInstitucional(this RouteGroupBuilder group)
     {
-        group.MapPut("/{id:guid}", Handle)
+        return group.MapPut("/{id:guid}", Handle)
             .WithName(nameof(UpdatePontoInstitucional));
-        return group;
     }
 
     private static async Task<Results<NoContent, NotFound>> Handle(

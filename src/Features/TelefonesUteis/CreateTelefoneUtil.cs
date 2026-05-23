@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.TelefonesUteis;
 
 public static class CreateTelefoneUtil
 {
-    public static RouteGroupBuilder MapCreateTelefoneUtil(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapCreateTelefoneUtil(this RouteGroupBuilder group)
     {
-        group.MapPost("/", Handle)
+        return group.MapPost("/", Handle)
             .WithName(nameof(CreateTelefoneUtil));
-        return group;
     }
 
     private static async Task<Created<DTOTelefoneUtil>> Handle(

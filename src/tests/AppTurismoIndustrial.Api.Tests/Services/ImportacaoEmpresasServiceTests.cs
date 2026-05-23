@@ -264,6 +264,11 @@ public class ImportacaoEmpresasServiceTests
         var logger = new Mock<ILogger<ImportacaoEmpresasService>>().Object;
 
         var service = new ImportacaoEmpresasService(context, logger);
+        // Data local: o expected UTC e calculado a partir do offset do runner pra que o
+        // teste rode em qualquer fuso (Windows pt-BR, runner UTC do GitHub Actions, etc.).
+        var dataLocal = new DateTime(2026, 5, 10, 12, 0, 0, DateTimeKind.Local);
+        var expectedUtc = dataLocal.ToUniversalTime();
+
         var registros = new List<EmpresaImportRecord>
         {
             new EmpresaImportRecord
@@ -271,7 +276,7 @@ public class ImportacaoEmpresasServiceTests
                 RecordId = "1",
                 Cnpj = "12345678000195",
                 RazaoSocial = "Empresa Teste",
-                DataImportacao = new DateTime(2026, 5, 10, 12, 0, 0, DateTimeKind.Local) // Data local
+                DataImportacao = dataLocal
             }
         }.ToAsyncEnumerable();
 
@@ -283,7 +288,7 @@ public class ImportacaoEmpresasServiceTests
         var empresa = context.Empresas.FirstOrDefault(e => e.Cnpj == "12345678000195");
         Assert.NotNull(empresa);
         Assert.Equal(DateTimeKind.Utc, empresa.DataCadastro.Kind);
-        Assert.Equal(new DateTime(2026, 5, 10, 15, 0, 0, DateTimeKind.Utc), empresa.DataCadastro); // Convertido para UTC
+        Assert.Equal(expectedUtc, empresa.DataCadastro); // Convertido para UTC (independente do fuso do runner)
     }
 
     // TODO: re-add coverage for "Importar pontos institucionais deve normalizar coordenadas"

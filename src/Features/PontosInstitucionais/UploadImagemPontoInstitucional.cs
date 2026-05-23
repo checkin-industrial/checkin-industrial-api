@@ -16,12 +16,11 @@ public static class UploadImagemPontoInstitucional
 
     private const long MaxImageBytes = 5 * 1024 * 1024;
 
-    public static RouteGroupBuilder MapUploadImagemPontoInstitucional(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapUploadImagemPontoInstitucional(this RouteGroupBuilder group)
     {
-        group.MapPost("/upload-imagem", Handle)
+        return group.MapPost("/upload-imagem", Handle)
             .WithName(nameof(UploadImagemPontoInstitucional))
             .DisableAntiforgery();
-        return group;
     }
 
     private static async Task<Results<Ok<DTOUploadArquivoResponse>, BadRequest<object>>> Handle(

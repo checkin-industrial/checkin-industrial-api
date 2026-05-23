@@ -6,12 +6,11 @@ namespace AppTurismoIndustrial.Api.Features.Empresas.Importacao;
 
 public static class ExportEmpresasCsvAnsi
 {
-    public static RouteGroupBuilder MapExportEmpresasCsvAnsi(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapExportEmpresasCsvAnsi(this RouteGroupBuilder group)
     {
-        group.MapGet("/empresas/exportar-ansi", Handle)
+        return group.MapGet("/empresas/exportar-ansi", Handle)
             .WithName(nameof(ExportEmpresasCsvAnsi))
             .Produces(StatusCodes.Status200OK, contentType: "text/csv");
-        return group;
     }
 
     /// <summary>

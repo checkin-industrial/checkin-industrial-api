@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.Empresas;
 
 public static class GetEmpresaNeighbors
 {
-    public static RouteGroupBuilder MapGetEmpresaNeighbors(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapGetEmpresaNeighbors(this RouteGroupBuilder group)
     {
-        group.MapGet("/{id:guid}/neighbors", Handle)
+        return group.MapGet("/{id:guid}/neighbors", Handle)
             .WithName(nameof(GetEmpresaNeighbors));
-        return group;
     }
 
     private static async Task<Results<Ok<DTOEmpresaVizinhancaResponse>, BadRequest<object>, NotFound>> Handle(

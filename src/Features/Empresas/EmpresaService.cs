@@ -43,7 +43,8 @@ public class EmpresaService : IEmpresaService
             Latitude = dto.Latitude,
             Longitude = dto.Longitude,
             SituacaoCadastral = dto.SituacaoCadastral,
-            DataCadastro = dto.DataCadastro ?? DateTime.UtcNow
+            DataCadastro = dto.DataCadastro ?? DateTime.UtcNow,
+            Ativo = dto.Ativo ?? true,
         };
 
         _context.Empresas.Add(empresa);
@@ -76,7 +77,8 @@ public class EmpresaService : IEmpresaService
                 SituacaoCadastral = e.SituacaoCadastral,
                 Latitude = e.Latitude,
                 Longitude = e.Longitude,
-                CreatedAt = e.DataCadastro
+                CreatedAt = e.DataCadastro,
+                Ativo = e.Ativo ?? true,
             })
             .ToListAsync(cancellationToken);
 
@@ -108,7 +110,8 @@ public class EmpresaService : IEmpresaService
                 SituacaoCadastral = e.SituacaoCadastral,
                 Latitude = e.Latitude,
                 Longitude = e.Longitude,
-                CreatedAt = e.DataCadastro
+                CreatedAt = e.DataCadastro,
+                Ativo = e.Ativo ?? true,
             })
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -148,6 +151,10 @@ public class EmpresaService : IEmpresaService
         empresa.Longitude = dto.Longitude;
         empresa.SituacaoCadastral = dto.SituacaoCadastral;
         empresa.DataCadastro = dto.DataCadastro ?? empresa.DataCadastro;
+        if (dto.Ativo.HasValue)
+        {
+            empresa.Ativo = dto.Ativo.Value;
+        }
 
         await _context.SaveChangesAsync(cancellationToken);
 
@@ -156,6 +163,9 @@ public class EmpresaService : IEmpresaService
 
     public async Task<bool> RemoverAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        // Soft delete consistente com TelefoneUtil e PontoInstitucional: marca
+        // Ativo=false em vez de remover a linha. Futuro painel de reativacao
+        // listara empresas com Ativo=false e permitira restaurar via Update.
         var empresa = await _context.Empresas.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
         if (empresa is null)
@@ -163,7 +173,12 @@ public class EmpresaService : IEmpresaService
             return false;
         }
 
-        _context.Empresas.Remove(empresa);
+        if (empresa.Ativo == false)
+        {
+            return true;
+        }
+
+        empresa.Ativo = false;
         await _context.SaveChangesAsync(cancellationToken);
 
         return true;
@@ -191,7 +206,8 @@ public class EmpresaService : IEmpresaService
             SituacaoCadastral = empresa.SituacaoCadastral,
             Latitude = empresa.Latitude,
             Longitude = empresa.Longitude,
-            CreatedAt = empresa.DataCadastro
+            CreatedAt = empresa.DataCadastro,
+            Ativo = empresa.Ativo ?? true,
         };
     }
 }

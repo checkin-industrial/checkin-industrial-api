@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.Empresas;
 
 public static class UpdateEmpresa
 {
-    public static RouteGroupBuilder MapUpdateEmpresa(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapUpdateEmpresa(this RouteGroupBuilder group)
     {
-        group.MapPut("/{id:guid}", Handle)
+        return group.MapPut("/{id:guid}", Handle)
             .WithName(nameof(UpdateEmpresa));
-        return group;
     }
 
     private static async Task<Results<NoContent, BadRequest, NotFound, Conflict<object>>> Handle(

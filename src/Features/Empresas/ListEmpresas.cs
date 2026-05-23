@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.Empresas;
 
 public static class ListEmpresas
 {
-    public static RouteGroupBuilder MapListEmpresas(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapListEmpresas(this RouteGroupBuilder group)
     {
-        group.MapGet("/", Handle)
+        return group.MapGet("/", Handle)
             .WithName(nameof(ListEmpresas));
-        return group;
     }
 
     private static async Task<Ok<List<EmpresaMapDTO>>> Handle(

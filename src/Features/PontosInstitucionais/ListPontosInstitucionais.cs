@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.PontosInstitucionais;
 
 public static class ListPontosInstitucionais
 {
-    public static RouteGroupBuilder MapListPontosInstitucionais(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapListPontosInstitucionais(this RouteGroupBuilder group)
     {
-        group.MapGet("/", Handle)
+        return group.MapGet("/", Handle)
             .WithName(nameof(ListPontosInstitucionais));
-        return group;
     }
 
     private static async Task<Ok<List<DTOPontoInstitucional>>> Handle(

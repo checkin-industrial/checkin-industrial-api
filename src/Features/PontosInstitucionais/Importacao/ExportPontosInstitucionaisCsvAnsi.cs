@@ -6,12 +6,11 @@ namespace AppTurismoIndustrial.Api.Features.PontosInstitucionais.Importacao;
 
 public static class ExportPontosInstitucionaisCsvAnsi
 {
-    public static RouteGroupBuilder MapExportPontosInstitucionaisCsvAnsi(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapExportPontosInstitucionaisCsvAnsi(this RouteGroupBuilder group)
     {
-        group.MapGet("/pontos-institucionais/exportar-ansi", Handle)
+        return group.MapGet("/pontos-institucionais/exportar-ansi", Handle)
             .WithName(nameof(ExportPontosInstitucionaisCsvAnsi))
             .Produces(StatusCodes.Status200OK, contentType: "text/csv");
-        return group;
     }
 
     private static async Task<FileContentHttpResult> Handle(

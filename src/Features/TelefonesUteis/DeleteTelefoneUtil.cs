@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.TelefonesUteis;
 
 public static class DeleteTelefoneUtil
 {
-    public static RouteGroupBuilder MapDeleteTelefoneUtil(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapDeleteTelefoneUtil(this RouteGroupBuilder group)
     {
-        group.MapDelete("/{id:guid}", Handle)
+        return group.MapDelete("/{id:guid}", Handle)
             .WithName(nameof(DeleteTelefoneUtil));
-        return group;
     }
 
     private static async Task<Results<NoContent, NotFound>> Handle(

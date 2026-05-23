@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.Empresas;
 
 public static class DeleteEmpresa
 {
-    public static RouteGroupBuilder MapDeleteEmpresa(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapDeleteEmpresa(this RouteGroupBuilder group)
     {
-        group.MapDelete("/{id:guid}", Handle)
+        return group.MapDelete("/{id:guid}", Handle)
             .WithName(nameof(DeleteEmpresa));
-        return group;
     }
 
     private static async Task<Results<NoContent, NotFound>> Handle(

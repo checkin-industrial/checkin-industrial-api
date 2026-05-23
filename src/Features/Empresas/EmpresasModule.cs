@@ -15,13 +15,18 @@ public static class EmpresasModule
     public static IEndpointRouteBuilder MapEmpresasEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/empresas").WithTags("Empresas");
-        group.MapListEmpresas();
-        group.MapFilterEmpresas();
-        group.MapGetEmpresaNeighbors();
-        group.MapGetEmpresaById();
-        group.MapCreateEmpresa();
-        group.MapUpdateEmpresa();
-        group.MapDeleteEmpresa();
+
+        // Reads - publicos (anonimo OK), com output cache
+        group.MapListEmpresas().CacheOutput("ReadEndpoint");
+        group.MapFilterEmpresas().CacheOutput("ReadEndpoint");
+        group.MapGetEmpresaNeighbors().CacheOutput("ReadEndpoint");
+        group.MapGetEmpresaById().CacheOutput("ReadEndpoint");
+
+        // Writes - protegidos por API Key
+        group.MapCreateEmpresa().RequireAuthorization();
+        group.MapUpdateEmpresa().RequireAuthorization();
+        group.MapDeleteEmpresa().RequireAuthorization();
+
         return endpoints;
     }
 }

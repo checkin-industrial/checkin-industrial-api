@@ -4,12 +4,11 @@ namespace AppTurismoIndustrial.Api.Features.Geocoding;
 
 public static class GeocodeAddress
 {
-    public static IEndpointRouteBuilder MapGeocodeAddress(this IEndpointRouteBuilder endpoints)
+    public static RouteHandlerBuilder MapGeocodeAddress(this IEndpointRouteBuilder endpoints)
     {
-        endpoints.MapPost("/api/empresas/geocode", Handle)
+        return endpoints.MapPost("/api/empresas/geocode", Handle)
             .WithName(nameof(GeocodeAddress))
             .WithTags("Geocoding");
-        return endpoints;
     }
 
     private static async Task<Results<Ok<DTOGeocodeResponse>, BadRequest<object>, NotFound<object>>> Handle(

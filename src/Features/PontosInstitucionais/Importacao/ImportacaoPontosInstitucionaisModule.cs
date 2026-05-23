@@ -6,9 +6,12 @@ public static class ImportacaoPontosInstitucionaisModule
     {
         // Mesmo grupo /api/import usado por ImportacaoEmpresasModule (rotas distintas).
         var group = endpoints.MapGroup("/api/import").WithTags("ImportacaoPontosInstitucionais");
-        group.MapImportPontosInstitucionais();
-        group.MapExportPontosInstitucionaisCsv();
-        group.MapExportPontosInstitucionaisCsvAnsi();
+
+        // Admin-only (mesma logica de Importacao Empresas)
+        group.MapImportPontosInstitucionais().RequireAuthorization();
+        group.MapExportPontosInstitucionaisCsv().RequireAuthorization();
+        group.MapExportPontosInstitucionaisCsvAnsi().RequireAuthorization();
+
         return endpoints;
     }
 }

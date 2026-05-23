@@ -11,11 +11,10 @@ public static class GetHeatmap
         "industria", "comercio", "servicos"
     };
 
-    public static RouteGroupBuilder MapGetHeatmap(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapGetHeatmap(this RouteGroupBuilder group)
     {
-        group.MapGet("/heatmap", Handle)
+        return group.MapGet("/heatmap", Handle)
             .WithName(nameof(GetHeatmap));
-        return group;
     }
 
     private static async Task<Results<Ok<List<HeatmapPointDTO>>, ValidationProblem, ProblemHttpResult>> Handle(

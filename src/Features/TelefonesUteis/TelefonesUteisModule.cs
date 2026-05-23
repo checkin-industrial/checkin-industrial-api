@@ -12,11 +12,16 @@ public static class TelefonesUteisModule
     public static IEndpointRouteBuilder MapTelefonesUteisEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/telefones-uteis").WithTags("TelefonesUteis");
-        group.MapListTelefonesUteis();
-        group.MapGetTelefoneUtilById();
-        group.MapCreateTelefoneUtil();
-        group.MapUpdateTelefoneUtil();
-        group.MapDeleteTelefoneUtil();
+
+        // Reads - publicos, com output cache
+        group.MapListTelefonesUteis().CacheOutput("ReadEndpoint");
+        group.MapGetTelefoneUtilById().CacheOutput("ReadEndpoint");
+
+        // Writes - protegidos por API Key
+        group.MapCreateTelefoneUtil().RequireAuthorization();
+        group.MapUpdateTelefoneUtil().RequireAuthorization();
+        group.MapDeleteTelefoneUtil().RequireAuthorization();
+
         return endpoints;
     }
 }

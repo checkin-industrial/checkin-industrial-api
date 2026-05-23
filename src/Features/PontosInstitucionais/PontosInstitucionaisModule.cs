@@ -12,12 +12,17 @@ public static class PontosInstitucionaisModule
     public static IEndpointRouteBuilder MapPontosInstitucionaisEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/pontos-institucionais").WithTags("PontosInstitucionais");
-        group.MapListPontosInstitucionais();
-        group.MapGetPontoInstitucionalById();
-        group.MapCreatePontoInstitucional();
-        group.MapUpdatePontoInstitucional();
-        group.MapDeletePontoInstitucional();
-        group.MapUploadImagemPontoInstitucional();
+
+        // Reads - publicos, com output cache
+        group.MapListPontosInstitucionais().CacheOutput("ReadEndpoint");
+        group.MapGetPontoInstitucionalById().CacheOutput("ReadEndpoint");
+
+        // Writes + upload - protegidos por API Key
+        group.MapCreatePontoInstitucional().RequireAuthorization();
+        group.MapUpdatePontoInstitucional().RequireAuthorization();
+        group.MapDeletePontoInstitucional().RequireAuthorization();
+        group.MapUploadImagemPontoInstitucional().RequireAuthorization();
+
         return endpoints;
     }
 }

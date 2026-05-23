@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.Empresas;
 
 public static class FilterEmpresas
 {
-    public static RouteGroupBuilder MapFilterEmpresas(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapFilterEmpresas(this RouteGroupBuilder group)
     {
-        group.MapGet("/filter", Handle)
+        return group.MapGet("/filter", Handle)
             .WithName(nameof(FilterEmpresas));
-        return group;
     }
 
     private static async Task<Results<Ok<List<EmpresaFilterDTO>>, BadRequest<object>>> Handle(

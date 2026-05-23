@@ -12,9 +12,12 @@ public static class ImportacaoEmpresasModule
     public static IEndpointRouteBuilder MapImportacaoEmpresasEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/import").WithTags("ImportacaoEmpresas");
-        group.MapImportEmpresas();
-        group.MapExportEmpresasCsv();
-        group.MapExportEmpresasCsvAnsi();
+
+        // Tudo aqui e admin-only (import + exports expoem o cadastro completo).
+        group.MapImportEmpresas().RequireAuthorization();
+        group.MapExportEmpresasCsv().RequireAuthorization();
+        group.MapExportEmpresasCsvAnsi().RequireAuthorization();
+
         return endpoints;
     }
 }

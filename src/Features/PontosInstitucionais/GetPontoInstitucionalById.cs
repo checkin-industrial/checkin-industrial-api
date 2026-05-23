@@ -4,11 +4,10 @@ namespace AppTurismoIndustrial.Api.Features.PontosInstitucionais;
 
 public static class GetPontoInstitucionalById
 {
-    public static RouteGroupBuilder MapGetPontoInstitucionalById(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapGetPontoInstitucionalById(this RouteGroupBuilder group)
     {
-        group.MapGet("/{id:guid}", Handle)
+        return group.MapGet("/{id:guid}", Handle)
             .WithName(nameof(GetPontoInstitucionalById));
-        return group;
     }
 
     private static async Task<Results<Ok<DTOPontoInstitucional>, NotFound>> Handle(

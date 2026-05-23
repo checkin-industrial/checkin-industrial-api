@@ -1,15 +1,17 @@
 # checkin-industrial-api
 
-Backend .NET 9 + EF Core + PostgreSQL para a plataforma checkin-industrial.
+Backend .NET 10 + EF Core + PostgreSQL para a plataforma checkin-industrial.
 
 ## Stack
 
-- **.NET 9** + Minimal APIs (sem `[ApiController]` + controllers)
-- **EF Core 9** + `Npgsql.EntityFrameworkCore.PostgreSQL` (provider)
+- **.NET 10 LTS** + Minimal APIs (sem `[ApiController]` + controllers)
+- **EF Core 10** + `Npgsql.EntityFrameworkCore.PostgreSQL` (provider)
 - **CsvHelper** para importacao/exportacao de cadastros
-- **Swashbuckle.AspNetCore** (Swagger UI servida em `/` na raiz)
+- **Swashbuckle.AspNetCore 10** (Swagger UI servida em `/` na raiz)
 - **xUnit + Moq** para testes
-- Sem MediatR, sem FluentValidation, sem AutoMapper
+- **API Key auth** (`X-Api-Key` header) para endpoints de escrita
+- **Rate limiting + Output caching + Response compression + Health checks** built-in
+- Sem MediatR, sem FluentValidation, sem AutoMapper, sem JWT
 
 ## Estrutura do diretorio `src/`
 
@@ -116,14 +118,49 @@ dotnet test
 
 Testes ficam em `src/tests/` (espelhando `Features/` por feature/service).
 
+## Configuracao em produção
+
+Variaveis de ambiente (todas overridable via `__` notation .NET):
+
+| Env var | Default (appsettings) | O que faz |
+|---|---|---|
+| `ConnectionStrings__DefaultConnectionTurismo` | `Server=localhost;...Password=postgres` | Connection string Postgres |
+| `Auth__ApiKey` | `""` (vazio) | API Key esperado no header `X-Api-Key` em endpoints de escrita. **Se vazio, writes ficam abertos** (so seguro em dev). |
+| `Cors__AllowedOrigins__0`, `__1`, ... | `localhost:5173`, `localhost:8081` | Whitelist de origens permitidas. Se array vazio, libera tudo + warning. |
+| `RateLimit__AnonymousPermitPerMinute` | 60 | Reqs/min para anonimos (reads do widget) |
+| `RateLimit__AuthenticatedPermitPerMinute` | 300 | Reqs/min para clientes autenticados (admin) |
+| `OutputCache__ReadEndpointTtlSeconds` | 60 | TTL do output cache para reads |
+| `UPLOADS_ROOT` | `wwwroot/uploads` | Volume montado para uploads de imagem (Railway) |
+| `PORT` | 8080 | Porta HTTP exposta |
+| `ASPNETCORE_ENVIRONMENT` | `Production` | Standard ASP.NET. `Development` deixa Swagger acessivel + warnings menos rigidos. |
+
+## Autorizacao
+
+API Key via header `X-Api-Key`. Implementado em [Shared/Auth/ApiKeyAuthenticationHandler.cs](Shared/Auth/ApiKeyAuthenticationHandler.cs).
+
+**Publicos (anonimo + output cache):** todos os reads (List/Get/Filter/Heatmap/Neighbors)
+**Protegidos (API Key obrigatoria):** Create, Update, Delete, Upload, Import, Export, Geocode
+
+Para gerar uma chave nova: `openssl rand -hex 32` ou similar. Configurar via `Auth__ApiKey` no Railway/Docker.
+
+## Health & observabilidade
+
+- `GET /health` - retorna 200 se DB esta acessivel, 503 caso contrario. Usado por Docker/Railway/k8s probes.
+- Logs estruturados via `ILogger<T>` (categoria por feature/service).
+- Sem APM/OpenTelemetry por enquanto (escopo de widget).
+
 ## Pontos de atencao / TODOs
 
-- **Migrations no startup** (`Program.cs:50`): `db.Database.Migrate()` roda automatico ao iniciar.
+- **Migrations no startup** (`Program.cs`): `db.Database.Migrate()` roda automatico ao iniciar.
   Em prod com multiplas instancias, mover para job dedicado de deploy.
-- **CORS permissivo** (`Program.cs:31`): hoje aceita qualquer origem. Apertar em PR de seguranca.
+- **Swagger SecurityDefinition**: removido temporariamente porque Swashbuckle 10 mudou o namespace
+  `Microsoft.OpenApi.Models`. UI ainda funciona, so nao tem o botao "Authorize". Re-adicionar em PR
+  futuro usando a nova API.
 - **Test coverage do import de pontos**: o test `ImportarPontosInstitucionais_Deve_Normalizar_Coordenadas`
   foi removido (era quebrado, Moq nao consegue construir AppDbContext sem options). Re-adicionar via
   WebApplicationFactory ou testando `PontoInstitucionalCsvFormatter` direto.
 - **Geocoding endpoint** em `POST /api/empresas/geocode`: rota historica, logica mora em
   `Features/Geocoding/GeocodeAddress.cs`. Se algum dia mover a rota para `/api/geocode`, alinhar
   com o painel antes.
+- **`.env.example` do tests-e2e**: a pasta `checkin-industrial-tests-e2e/docker-compose/` precisa
+  ganhar `AUTH_API_KEY` e `CORS_ORIGINS` no proximo PR daquele repo.

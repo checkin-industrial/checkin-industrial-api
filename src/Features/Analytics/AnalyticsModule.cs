@@ -12,7 +12,10 @@ public static class AnalyticsModule
     public static IEndpointRouteBuilder MapAnalyticsEndpoints(this IEndpointRouteBuilder endpoints)
     {
         var group = endpoints.MapGroup("/api/analytics").WithTags("Analytics");
-        group.MapGetHeatmap();
+
+        // Read publico com cache (heatmap eh agregacao cara, vale cachear)
+        group.MapGetHeatmap().CacheOutput("ReadEndpoint");
+
         return endpoints;
     }
 }

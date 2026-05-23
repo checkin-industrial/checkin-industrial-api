@@ -11,12 +11,11 @@ public static class ImportPontosInstitucionais
 {
     private const long MaxFileSize = 20 * 1024 * 1024; // 20 MB
 
-    public static RouteGroupBuilder MapImportPontosInstitucionais(this RouteGroupBuilder group)
+    public static RouteHandlerBuilder MapImportPontosInstitucionais(this RouteGroupBuilder group)
     {
-        group.MapPost("/pontos-institucionais", Handle)
+        return group.MapPost("/pontos-institucionais", Handle)
             .WithName(nameof(ImportPontosInstitucionais))
             .DisableAntiforgery();
-        return group;
     }
 
     private static async Task<IResult> Handle(

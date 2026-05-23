@@ -12,7 +12,8 @@ public static class GeocodingModule
     public static IEndpointRouteBuilder MapGeocodingEndpoints(this IEndpointRouteBuilder endpoints)
     {
         // Mantida a rota historica /api/empresas/geocode para nao quebrar consumidores existentes.
-        endpoints.MapGeocodeAddress();
+        // Protegida por API Key (uso admin no painel + consome API externa Nominatim).
+        endpoints.MapGeocodeAddress().RequireAuthorization();
         return endpoints;
     }
 }

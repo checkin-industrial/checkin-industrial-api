@@ -23,4 +23,5 @@ public class DTORespostaEmpresa
     public decimal Latitude { get; set; }
     public decimal Longitude { get; set; }
     public DateTime CreatedAt { get; set; }
+    public bool Ativo { get; set; } = true;
 }

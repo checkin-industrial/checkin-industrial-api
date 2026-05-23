@@ -64,4 +64,6 @@ public class DTOEmpresaCriar
     public SituacaoCadastral SituacaoCadastral { get; set; }
 
     public DateTime? DataCadastro { get; set; }
+
+    public bool? Ativo { get; set; }
 }

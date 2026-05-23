@@ -40,7 +40,10 @@ public static class ImportPontosInstitucionais
         var extensao = Path.GetExtension(file.FileName).ToLowerInvariant();
         if (extensao != ".csv")
         {
-            return Results.StatusCode(StatusCodes.Status415UnsupportedMediaType);
+            // Mantem o padrao do handler: payload `{ erro: ... }` para clientes ja consumirem.
+            return Results.Json(
+                new { erro = "Formato de arquivo nao suportado. Use CSV." },
+                statusCode: StatusCodes.Status415UnsupportedMediaType);
         }
 
         var resultado = new PontoInstitucionalImportResult();
@@ -75,10 +78,13 @@ public static class ImportPontosInstitucionais
                 var validationErrors = new List<PontoInstitucionalImportError>();
 
                 var idValue = PontoInstitucionalCsvFormatter.GetField(csv, "Id");
-                var nome = PontoInstitucionalCsvFormatter.GetField(csv, "Nome");
+                // Trim a leitura: as mesmas strings serao usadas no lookup E na atribuicao
+                // (antes, lookup usava a versao com whitespace e save normalizava com Trim,
+                // o que poderia criar duplicatas em casos com espacos no CSV).
+                var nome = PontoInstitucionalCsvFormatter.GetField(csv, "Nome").Trim();
                 var tipoText = PontoInstitucionalCsvFormatter.GetField(csv, "Tipo");
-                var descricao = PontoInstitucionalCsvFormatter.GetField(csv, "Descricao");
-                var endereco = PontoInstitucionalCsvFormatter.GetField(csv, "Endereco");
+                var descricao = PontoInstitucionalCsvFormatter.GetField(csv, "Descricao").Trim();
+                var endereco = PontoInstitucionalCsvFormatter.GetField(csv, "Endereco").Trim();
                 var latitudeText = PontoInstitucionalCsvFormatter.GetField(csv, "Latitude");
                 var longitudeText = PontoInstitucionalCsvFormatter.GetField(csv, "Longitude");
 
@@ -145,10 +151,10 @@ public static class ImportPontosInstitucionais
                     resultado.Updated++;
                 }
 
-                pontoExistente.Nome = nome!.Trim();
+                pontoExistente.Nome = nome;
                 pontoExistente.Tipo = tipo!.Value;
-                pontoExistente.Descricao = descricao!.Trim();
-                pontoExistente.Endereco = endereco!.Trim();
+                pontoExistente.Descricao = descricao;
+                pontoExistente.Endereco = endereco;
                 pontoExistente.Latitude = latitude!.Value;
                 pontoExistente.Longitude = longitude!.Value;
                 pontoExistente.AtividadesDisponiveis = PontoInstitucionalCsvFormatter.NormalizeNullable(PontoInstitucionalCsvFormatter.GetField(csv, "Atividades_Disponiveis"));

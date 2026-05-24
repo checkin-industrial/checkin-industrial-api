@@ -45,7 +45,34 @@ Geocoding endpoint historico em `POST /api/empresas/geocode` mora em `Features/G
 ## Importacao (sub-feature)
 
 Ver `Importacao/CLAUDE.md` (a criar quando relevante). Resumo:
+
 - POST `/api/import/empresas` aceita CSV ou JSON multipart.
 - GET `/api/import/empresas/exportar` retorna CSV UTF-8 BOM.
 - GET `/api/import/empresas/exportar-ansi` retorna CSV Windows-1252 (Excel legacy).
 - Helpers compartilhados em `EmpresaCsvFormatter.cs` (formatacao de CNPJ com `'` prefix, coordenadas pt-BR).
+
+## GoogleMapsImport (sub-feature)
+
+POST `/api/empresas/import/google-maps` (**X-Api-Key**). Recebe `{ cep, raioMetros, tipo }`,
+geocodifica o CEP via Nominatim, chama Google Places Nearby Search, e:
+
+- Cria empresas novas com `Ativo=false` (fluxo de revisao do admin) + `GooglePlaceId` setado.
+- **Enriquece** empresas existentes que ja tem o mesmo `GooglePlaceId` (preenche campos vazios
+  com dados do Google; nunca sobrescreve).
+- Persiste cada operacao em `google_maps_import_log` (jsonb com response raw + contadores).
+
+Config:
+
+- `GoogleMaps__ApiKey` (env var) — **nunca commitar**. Fail-fast se vazio quando o endpoint e chamado.
+- `GoogleMaps__MaxRaioMetros` (default 10000) — cap absoluto, requests acima retornam 400.
+- `GoogleMaps__AllowedRegion__LatMin/LatMax/LngMin/LngMax` — bounding box opcional. Quando configurada,
+  protege contra requests acidentais fora da regiao prevista (CEP geocodificado fora da box → 400).
+
+**Cnpj nullable**: imports do Google nao trazem CNPJ. Admin preenche depois via Update antes de reativar.
+Unique index e parcial (`WHERE Cnpj IS NOT NULL`), entao multiplos nulls coexistem.
+
+Tipos suportados: `industria`, `loja`, `supermercado`, `farmacia`, `restaurante`, `hotel`,
+`posto-combustivel`, `banco`, `oficina-mecanica`, `loja-veiculos`. Ver `GooglePlaceTypeMapping.cs`.
+
+**Testes nao devem tocar a API real** — Google Maps cobra por chamada. Mock `IGooglePlacesClient`
+em unit tests; use WireMock no docker-compose dos E2E (suite ainda nao implementada).

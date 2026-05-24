@@ -131,6 +131,8 @@ builder.Services
     .AddAnalyticsFeature()
     .AddGeocodingFeature();
 
+builder.Services.AddGoogleMapsImportFeature(builder.Configuration);
+
 // ─── Swagger / OpenAPI ──────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
@@ -222,6 +224,7 @@ app.MapHealthChecks("/health");
 
 app.MapEmpresasEndpoints();
 app.MapImportacaoEmpresasEndpoints();
+app.MapGoogleMapsImportEndpoints();
 app.MapPontosInstitucionaisEndpoints();
 app.MapImportacaoPontosInstitucionaisEndpoints();
 app.MapTelefonesUteisEndpoints();

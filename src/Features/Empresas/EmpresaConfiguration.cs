@@ -13,12 +13,25 @@ public class EmpresaConfiguration : IEntityTypeConfiguration<Empresa>
         builder.HasKey(e => e.Id);
 
         builder.Property(e => e.Cnpj)
-            .IsRequired()
+            .IsRequired(false)
             .HasMaxLength(14);
 
+        // Unique parcial: dois nulls coexistem (imports do Google entram sem CNPJ),
+        // mas dois CNPJs preenchidos identicos ainda colidem.
         builder.HasIndex(e => e.Cnpj)
             .IsUnique()
+            .HasFilter("\"Cnpj\" IS NOT NULL")
             .HasDatabaseName("ux_empresas_cnpj");
+
+        builder.Property(e => e.GooglePlaceId)
+            .IsRequired(false)
+            .HasMaxLength(200);
+
+        // Mesmo padrao do Cnpj: dedup de re-imports sem bloquear empresas sem origem Google.
+        builder.HasIndex(e => e.GooglePlaceId)
+            .IsUnique()
+            .HasFilter("\"GooglePlaceId\" IS NOT NULL")
+            .HasDatabaseName("ux_empresas_google_place_id");
 
         builder.Property(e => e.RazaoSocial)
             .IsRequired()

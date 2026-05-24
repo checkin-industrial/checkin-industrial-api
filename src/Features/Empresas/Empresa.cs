@@ -11,10 +11,17 @@ public class Empresa
     [Key]
     public Guid Id { get; set; } = Guid.NewGuid();
 
-    [Required]
+    // Cnpj e nullable porque imports de fontes externas (Google Maps) nao trazem CNPJ.
+    // Admin preenche depois via Update antes de reativar a empresa. Quando preenchido,
+    // unique constraint parcial garante que dois registros nao tenham o mesmo Cnpj.
     [StringLength(14, MinimumLength = 14)]
     [RegularExpression(@"^\d{14}$", ErrorMessage = "CNPJ deve conter exatamente 14 digitos numericos.")]
-    public string Cnpj { get; set; } = string.Empty;
+    public string? Cnpj { get; set; }
+
+    // Place ID estavel fornecido por fontes externas (atualmente Google Places).
+    // Usado para dedup em re-imports e como bridge pra enriquecimento futuro.
+    [StringLength(200)]
+    public string? GooglePlaceId { get; set; }
 
     [Required]
     [StringLength(200)]

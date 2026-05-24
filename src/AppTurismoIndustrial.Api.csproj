@@ -29,6 +29,7 @@
   <ItemGroup>
     <Using Include="AppTurismoIndustrial.Api.Features.Empresas" />
     <Using Include="AppTurismoIndustrial.Api.Features.Empresas.Importacao" />
+    <Using Include="AppTurismoIndustrial.Api.Features.Empresas.GoogleMapsImport" />
     <Using Include="AppTurismoIndustrial.Api.Features.PontosInstitucionais" />
     <Using Include="AppTurismoIndustrial.Api.Features.PontosInstitucionais.Importacao" />
     <Using Include="AppTurismoIndustrial.Api.Features.TelefonesUteis" />

@@ -60,7 +60,7 @@ public class EmpresaService : IEmpresaService
             .Select(e => new DTORespostaEmpresa
             {
                 Id = e.Id,
-                Cnpj = e.Cnpj,
+                Cnpj = e.Cnpj ?? string.Empty,
                 RazaoSocial = e.RazaoSocial,
                 NomeFantasia = e.NomeFantasia,
                 CnaePrincipal = e.CnaePrincipal,
@@ -93,7 +93,7 @@ public class EmpresaService : IEmpresaService
             .Select(e => new DTORespostaEmpresa
             {
                 Id = e.Id,
-                Cnpj = e.Cnpj,
+                Cnpj = e.Cnpj ?? string.Empty,
                 RazaoSocial = e.RazaoSocial,
                 NomeFantasia = e.NomeFantasia,
                 CnaePrincipal = e.CnaePrincipal,
@@ -189,7 +189,7 @@ public class EmpresaService : IEmpresaService
         return new DTORespostaEmpresa
         {
             Id = empresa.Id,
-            Cnpj = empresa.Cnpj,
+            Cnpj = empresa.Cnpj ?? string.Empty,
             RazaoSocial = empresa.RazaoSocial,
             NomeFantasia = empresa.NomeFantasia,
             CnaePrincipal = empresa.CnaePrincipal,

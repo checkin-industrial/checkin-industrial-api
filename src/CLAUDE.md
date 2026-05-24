@@ -12,6 +12,7 @@ Backend .NET 10 + EF Core + PostgreSQL para a plataforma checkin-industrial.
 - **API Key auth** (`X-Api-Key` header) para endpoints de escrita
 - **Rate limiting + Output caching + Response compression + Health checks** built-in
 - **FluentValidation** para validacao de DTOs (validators em `<Feature>/DTO<X>Validator.cs`; filter generico em `Shared/Validation/ValidationFilter.cs`)
+- **System.Text.Json com enums como string** (camelCase) - aceita ambos string e int no deserialize (compat). Ver `JsonStringEnumConverter` em `Program.cs`.
 - Sem MediatR, sem AutoMapper, sem JWT
 
 ## Estrutura do diretorio `src/`

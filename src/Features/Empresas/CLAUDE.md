@@ -33,8 +33,13 @@ Geocoding endpoint historico em `POST /api/empresas/geocode` mora em `Features/G
 
 ## Gotchas
 
-- **Setor enum/string**: o painel manda `Setor` como int via query (`?setor=1`), mas o CSV usa strings
-  (`industria`, `comercio`, `servicos`). A conversao mora em `Importacao/EmpresaCsvFormatter.cs`.
+- **Enums como string no JSON**: Setor/Porte/MatrizOuFilial/SituacaoCadastral/Status sao
+  serializados como string camelCase em todos os endpoints REST (`"industria"`, `"aguardandoRevisao"`).
+  A deserializacao aceita TANTO string QUANTO int (`allowIntegerValues: true` em
+  `JsonStringEnumConverter`), entao clients legados que mandam ints continuam funcionando -
+  use sempre as strings em codigo novo. Config em `Program.cs` na secao "JSON: enums como string".
+- **Setor enum/string no CSV**: o import CSV usa strings amigaveis
+  (`industria`, `comercio`, `servicos`) - a conversao mora em `Importacao/EmpresaCsvFormatter.cs`.
 - **CNPJ unique constraint**: violacao retorna 409 (nao 400/500). Cuide ao alterar fluxos de Create/Update
   pra continuar mapeando `cnpjDuplicado: true` -> `TypedResults.Conflict<object>(...)`.
 - **Latitude/Longitude**: precisao `decimal(9,6)`. Latitude valida: -90 a 90, Longitude: -180 a 180

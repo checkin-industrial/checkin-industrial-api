@@ -218,9 +218,9 @@ public class ImportacaoEmpresasService : IImportacaoEmpresasService
         // Carrega empresas que já existem no banco para este lote.
         var cnpjsNoLote = lote.Select(r => r.Cnpj).ToList();
         var empresasExistentes = await _context.Empresas
-            .Where(e => cnpjsNoLote.Contains(e.Cnpj))
+            .Where(e => e.Cnpj != null && cnpjsNoLote.Contains(e.Cnpj))
             .ToListAsync(cancellationToken);
-        var empresasPorCnpj = empresasExistentes.ToDictionary(e => e.Cnpj, e => e);
+        var empresasPorCnpj = empresasExistentes.ToDictionary(e => e.Cnpj!, e => e);
 
         _logger.LogDebug("Lote {NumLote}: {QtdExistentes} CNPJs já existem no banco e serão atualizados",
             numeroLote, empresasExistentes.Count);

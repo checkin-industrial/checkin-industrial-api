@@ -129,6 +129,8 @@ builder.Services
     .AddAnalyticsFeature()
     .AddGeocodingFeature();
 
+builder.Services.AddGoogleMapsImportFeature(builder.Configuration);
+
 // ─── Swagger / OpenAPI ──────────────────────────────────────────────────────
 // TODO: adicionar SecurityDefinition para X-Api-Key na UI do Swagger.
 // Swashbuckle 10 mudou a API do Microsoft.OpenApi.Models - olhar em proximo PR.
@@ -212,6 +214,7 @@ app.MapHealthChecks("/health");
 
 app.MapEmpresasEndpoints();
 app.MapImportacaoEmpresasEndpoints();
+app.MapGoogleMapsImportEndpoints();
 app.MapPontosInstitucionaisEndpoints();
 app.MapImportacaoPontosInstitucionaisEndpoints();
 app.MapTelefonesUteisEndpoints();

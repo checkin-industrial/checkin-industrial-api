@@ -9,10 +9,12 @@ using AppTurismoIndustrial.Api.Features.TelefonesUteis;
 using AppTurismoIndustrial.Api.Infrastructure.Persistence;
 using AppTurismoIndustrial.Api.Shared.Auth;
 using AppTurismoIndustrial.Api.Shared.Middleware;
+using AppTurismoIndustrial.Api.Shared.Swagger;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -130,10 +132,18 @@ builder.Services
     .AddGeocodingFeature();
 
 // ─── Swagger / OpenAPI ──────────────────────────────────────────────────────
-// TODO: adicionar SecurityDefinition para X-Api-Key na UI do Swagger.
-// Swashbuckle 10 mudou a API do Microsoft.OpenApi.Models - olhar em proximo PR.
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition(ApiKeyAuthenticationOptions.Scheme, new OpenApiSecurityScheme
+    {
+        Type = SecuritySchemeType.ApiKey,
+        In = ParameterLocation.Header,
+        Name = ApiKeyAuthenticationOptions.HeaderName,
+        Description = "Chave configurada em Auth:ApiKey. Necessaria em endpoints de escrita (Create/Update/Delete/Import/Upload/Geocode).",
+    });
+    options.OperationFilter<ApiKeySecurityOperationFilter>();
+});
 
 var app = builder.Build();
 

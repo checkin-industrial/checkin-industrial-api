@@ -38,6 +38,7 @@
     <Using Include="AppTurismoIndustrial.Api.Features.Analytics" />
     <Using Include="AppTurismoIndustrial.Api.Features.Geocoding" />
     <Using Include="AppTurismoIndustrial.Api.Infrastructure.Persistence" />
+    <Using Include="AppTurismoIndustrial.Api.Shared.Filters" />
   </ItemGroup>
 
 </Project>

@@ -107,9 +107,22 @@ docker compose up --build
 # OU API standalone (precisa de um Postgres local na 5432):
 cd src
 dotnet run
+
+# Apenas aplicar migrations + sair (job de deploy):
+cd src
+dotnet run -- --migrate-only
 ```
 
 API: <http://localhost:8080> (swagger em `/`). Swagger JSON: `/swagger/v1/swagger.json`.
+
+### Migrations em prod multi-instancia
+
+Pra evitar race entre replicas executando `db.Database.Migrate()` concorrentemente:
+
+1. **Step de deploy**: roda `dotnet AppTurismoIndustrial.Api.dll --migrate-only` apontando pro DB de prod. Aplica migrations e sai com exit 0.
+2. **Replicas em runtime**: sobem com `Migrations__SkipOnStartup=true`, pulando o migrate automatico.
+
+Em dev / single-instance, o default (migrate no startup) e suficiente — nao precisa configurar nada.
 
 ## Tests
 
@@ -135,6 +148,7 @@ Variaveis de ambiente (todas overridable via `__` notation .NET):
 | `UPLOADS_ROOT` | `wwwroot/uploads` | Volume montado para uploads de imagem (Railway) |
 | `PORT` | 8080 | Porta HTTP exposta |
 | `ASPNETCORE_ENVIRONMENT` | `Production` | Standard ASP.NET. `Development` deixa Swagger acessivel + warnings menos rigidos. |
+| `Migrations__SkipOnStartup` | `false` | Em `true`, app nao roda `db.Database.Migrate()` no startup. Use em prod multi-instancia depois de rodar `--migrate-only` como step de deploy. |
 
 ## Autorizacao
 
@@ -153,8 +167,6 @@ Para gerar uma chave nova: `openssl rand -hex 32` ou similar. Configurar via `Au
 
 ## Pontos de atencao / TODOs
 
-- **Migrations no startup** (`Program.cs`): `db.Database.Migrate()` roda automatico ao iniciar.
-  Em prod com multiplas instancias, mover para job dedicado de deploy.
 - **Geocoding endpoint** em `POST /api/empresas/geocode`: rota historica, logica mora em
   `Features/Geocoding/GeocodeAddress.cs`. Se algum dia mover a rota para `/api/geocode`, alinhar
   com o painel antes.

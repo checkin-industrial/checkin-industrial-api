@@ -21,6 +21,10 @@ public class EmpresaFilterService : IEmpresaFilterService
             cancellationToken);
 
         // Mapeamento explícito para manter o contrato de saída estável na camada de serviço.
+        // Status: o EmpresaFilterQuery ja preenche, mas precisamos propagar aqui senao o
+        // EmpresaFilterDTO default (StatusEmpresa.Ativo) sobrescreve no novo DTO criado,
+        // fazendo TODA empresa do filter responder como "ativo" no JSON - independente
+        // do estado real no banco.
         return resultado
             .Select(item => new EmpresaFilterDTO
             {
@@ -36,7 +40,8 @@ public class EmpresaFilterService : IEmpresaFilterService
                 Municipio = item.Municipio,
                 MatrizOuFilial = item.MatrizOuFilial,
                 Latitude = item.Latitude,
-                Longitude = item.Longitude
+                Longitude = item.Longitude,
+                Status = item.Status,
             })
             .Take(MaxFilterRecords)
             .ToList();

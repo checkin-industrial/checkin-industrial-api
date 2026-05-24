@@ -47,6 +47,6 @@ public class EmpresaFilterDTO
     [JsonPropertyName("longitude")]
     public double Longitude { get; set; }
 
-    [JsonPropertyName("ativo")]
-    public bool Ativo { get; set; } = true;
+    [JsonPropertyName("status")]
+    public StatusEmpresa Status { get; set; } = StatusEmpresa.Ativo;
 }

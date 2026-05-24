@@ -56,7 +56,7 @@ Ver `Importacao/CLAUDE.md` (a criar quando relevante). Resumo:
 POST `/api/empresas/import/google-maps` (**X-Api-Key**). Recebe `{ cep, raioMetros, tipo }`,
 geocodifica o CEP via Nominatim, chama Google Places Nearby Search, e:
 
-- Cria empresas novas com `Ativo=false` (fluxo de revisao do admin) + `GooglePlaceId` setado.
+- Cria empresas novas com `Status=AguardandoRevisao` + `GooglePlaceId` setado. Admin revisa e promove para `Ativo` (ou `Inativo` se rejeitar).
 - **Enriquece** empresas existentes que ja tem o mesmo `GooglePlaceId` (preenche campos vazios
   com dados do Google; nunca sobrescreve).
 - Persiste cada operacao em `google_maps_import_log` (jsonb com response raw + contadores).

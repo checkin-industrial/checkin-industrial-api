@@ -44,7 +44,7 @@ public class EmpresaService : IEmpresaService
             Longitude = dto.Longitude,
             SituacaoCadastral = dto.SituacaoCadastral,
             DataCadastro = dto.DataCadastro ?? DateTime.UtcNow,
-            Ativo = dto.Ativo ?? true,
+            Status = dto.Status ?? StatusEmpresa.Ativo,
         };
 
         _context.Empresas.Add(empresa);
@@ -78,7 +78,7 @@ public class EmpresaService : IEmpresaService
                 Latitude = e.Latitude,
                 Longitude = e.Longitude,
                 CreatedAt = e.DataCadastro,
-                Ativo = e.Ativo ?? true,
+                Status = e.Status,
             })
             .ToListAsync(cancellationToken);
 
@@ -111,7 +111,7 @@ public class EmpresaService : IEmpresaService
                 Latitude = e.Latitude,
                 Longitude = e.Longitude,
                 CreatedAt = e.DataCadastro,
-                Ativo = e.Ativo ?? true,
+                Status = e.Status,
             })
             .FirstOrDefaultAsync(cancellationToken);
     }
@@ -151,9 +151,9 @@ public class EmpresaService : IEmpresaService
         empresa.Longitude = dto.Longitude;
         empresa.SituacaoCadastral = dto.SituacaoCadastral;
         empresa.DataCadastro = dto.DataCadastro ?? empresa.DataCadastro;
-        if (dto.Ativo.HasValue)
+        if (dto.Status.HasValue)
         {
-            empresa.Ativo = dto.Ativo.Value;
+            empresa.Status = dto.Status.Value;
         }
 
         await _context.SaveChangesAsync(cancellationToken);
@@ -163,9 +163,9 @@ public class EmpresaService : IEmpresaService
 
     public async Task<bool> RemoverAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        // Soft delete consistente com TelefoneUtil e PontoInstitucional: marca
-        // Ativo=false em vez de remover a linha. Futuro painel de reativacao
-        // listara empresas com Ativo=false e permitira restaurar via Update.
+        // Soft delete: marca Status=Inativo em vez de remover a linha. Empresas
+        // com Status=AguardandoRevisao (vindas de import) tambem caem para Inativo
+        // via delete - admin que quiser "rejeitar" um import faz delete.
         var empresa = await _context.Empresas.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
         if (empresa is null)
@@ -173,12 +173,12 @@ public class EmpresaService : IEmpresaService
             return false;
         }
 
-        if (empresa.Ativo == false)
+        if (empresa.Status == StatusEmpresa.Inativo)
         {
             return true;
         }
 
-        empresa.Ativo = false;
+        empresa.Status = StatusEmpresa.Inativo;
         await _context.SaveChangesAsync(cancellationToken);
 
         return true;
@@ -207,7 +207,7 @@ public class EmpresaService : IEmpresaService
             Latitude = empresa.Latitude,
             Longitude = empresa.Longitude,
             CreatedAt = empresa.DataCadastro,
-            Ativo = empresa.Ativo ?? true,
+            Status = empresa.Status,
         };
     }
 }

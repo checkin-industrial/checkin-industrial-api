@@ -1,3 +1,4 @@
+using AppTurismoIndustrial.Api.Shared.Validation;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace AppTurismoIndustrial.Api.Features.PontosInstitucionais;
@@ -7,7 +8,8 @@ public static class CreatePontoInstitucional
     public static RouteHandlerBuilder MapCreatePontoInstitucional(this RouteGroupBuilder group)
     {
         return group.MapPost("/", Handle)
-            .WithName(nameof(CreatePontoInstitucional));
+            .WithName(nameof(CreatePontoInstitucional))
+            .AddEndpointFilter<ValidationFilter<DTOPontoInstitucionalCriar>>();
     }
 
     private static async Task<Created<DTOPontoInstitucional>> Handle(

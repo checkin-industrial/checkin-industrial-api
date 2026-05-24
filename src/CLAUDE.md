@@ -11,7 +11,8 @@ Backend .NET 10 + EF Core + PostgreSQL para a plataforma checkin-industrial.
 - **xUnit + Moq** para testes
 - **API Key auth** (`X-Api-Key` header) para endpoints de escrita
 - **Rate limiting + Output caching + Response compression + Health checks** built-in
-- Sem MediatR, sem FluentValidation, sem AutoMapper, sem JWT
+- **FluentValidation** para validacao de DTOs (validators em `<Feature>/DTO<X>Validator.cs`; filter generico em `Shared/Validation/ValidationFilter.cs`)
+- Sem MediatR, sem AutoMapper, sem JWT
 
 ## Estrutura do diretorio `src/`
 
@@ -153,9 +154,6 @@ Para gerar uma chave nova: `openssl rand -hex 32` ou similar. Configurar via `Au
 
 - **Migrations no startup** (`Program.cs`): `db.Database.Migrate()` roda automatico ao iniciar.
   Em prod com multiplas instancias, mover para job dedicado de deploy.
-- **Test coverage do import de pontos**: o test `ImportarPontosInstitucionais_Deve_Normalizar_Coordenadas`
-  foi removido (era quebrado, Moq nao consegue construir AppDbContext sem options). Re-adicionar via
-  WebApplicationFactory ou testando `PontoInstitucionalCsvFormatter` direto.
 - **Geocoding endpoint** em `POST /api/empresas/geocode`: rota historica, logica mora em
   `Features/Geocoding/GeocodeAddress.cs`. Se algum dia mover a rota para `/api/geocode`, alinhar
   com o painel antes.

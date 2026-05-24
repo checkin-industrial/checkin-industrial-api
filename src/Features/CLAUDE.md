@@ -109,15 +109,23 @@ no tipo de retorno. Isso documenta os possiveis status no OpenAPI/Swagger automa
 
 ### 6. Validacao
 
-- Data Annotations no DTO de request (`[Required]`, `[Range]`, `[StringLength]`, `[RegularExpression]`).
-- Regras nao-anotaveis: valide inline no handler e retorne `BadRequest`.
-- Em logica de service, prefira lancar `ValidationException` / `NotFoundException` / `ConflictException`
-  do `Shared/Errors/AppException.cs`. O middleware ProblemDetails captura.
+- **FluentValidation** e o padrao do projeto. Crie um `<DTO>Validator : AbstractValidator<DTO>`
+  ao lado do DTO (mesma pasta da feature). Validators sao auto-registrados pelo
+  `AddValidatorsFromAssembly` em `Program.cs`.
+- Aplique o filter no endpoint: `.AddEndpointFilter<ValidationFilter<DTO>>()`. O filter
+  resolve o validator do DI, valida o DTO, e converte falhas em `ValidationException`
+  (400 ProblemDetails).
+- Data Annotations no DTO ainda sao uteis para documentar restricoes no OpenAPI/Swagger.
+  Convivem com o FluentValidation sem conflito.
+- Regras nao-anotaveis que dependem de DB (uniqueness, etc.): valide no service e lance
+  `ValidationException` / `ConflictException` diretamente.
 
 ### 7. Erros
 
 - Excecoes -> middleware `ProblemDetailsMiddleware` (registrado em `Program.cs`) -> resposta RFC 7807.
-- Codigo legacy ainda usa booleanos retornados pelos services. Esta tudo bem; novo codigo prefere excecoes.
+- Services lancam `NotFoundException` / `ConflictException` / `ValidationException`
+  (de `Shared/Errors/AppException.cs`). Endpoints nao precisam mais checar booleanos -
+  o middleware traduz pra 404 / 409 / 400.
 
 ## Sub-features (ex.: Importacao)
 

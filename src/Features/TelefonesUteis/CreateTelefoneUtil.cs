@@ -1,3 +1,4 @@
+using AppTurismoIndustrial.Api.Shared.Validation;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace AppTurismoIndustrial.Api.Features.TelefonesUteis;
@@ -7,7 +8,8 @@ public static class CreateTelefoneUtil
     public static RouteHandlerBuilder MapCreateTelefoneUtil(this RouteGroupBuilder group)
     {
         return group.MapPost("/", Handle)
-            .WithName(nameof(CreateTelefoneUtil));
+            .WithName(nameof(CreateTelefoneUtil))
+            .AddEndpointFilter<ValidationFilter<DTOTelefoneUtilCriar>>();
     }
 
     private static async Task<Created<DTOTelefoneUtil>> Handle(

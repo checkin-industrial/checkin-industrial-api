@@ -10,11 +10,13 @@ public static class DeleteEmpresa
             .WithName(nameof(DeleteEmpresa));
     }
 
-    private static async Task<Results<NoContent, NotFound>> Handle(
+    private static async Task<NoContent> Handle(
         Guid id,
-        IEmpresaService service)
+        IEmpresaService service,
+        CancellationToken cancellationToken)
     {
-        var removida = await service.RemoverAsync(id);
-        return removida ? TypedResults.NoContent() : TypedResults.NotFound();
+        // 404 via NotFoundException -> ProblemDetailsMiddleware.
+        await service.RemoverAsync(id, cancellationToken);
+        return TypedResults.NoContent();
     }
 }

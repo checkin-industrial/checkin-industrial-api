@@ -1,6 +1,7 @@
 
 
 using AppTurismoIndustrial.Api.Infrastructure.Persistence;
+using AppTurismoIndustrial.Api.Shared.Errors;
 using Microsoft.EntityFrameworkCore;
 
 namespace AppTurismoIndustrial.Api.Features.TelefonesUteis;
@@ -51,14 +52,14 @@ public class TelefoneUtilService : ITelefoneUtilService
         return MapToDto(telefoneUtil);
     }
 
-    public async Task<bool> AtualizarAsync(Guid id, DTOTelefoneUtilAtualizar dto, CancellationToken cancellationToken = default)
+    public async Task AtualizarAsync(Guid id, DTOTelefoneUtilAtualizar dto, CancellationToken cancellationToken = default)
     {
         var telefoneUtil = await _context.TelefonesUteis
             .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
         if (telefoneUtil is null)
         {
-            return false;
+            throw new NotFoundException($"Telefone util {id} nao encontrado.");
         }
 
         telefoneUtil.Nome = dto.Nome;
@@ -68,28 +69,25 @@ public class TelefoneUtilService : ITelefoneUtilService
         telefoneUtil.Ativo = dto.Ativo;
 
         await _context.SaveChangesAsync(cancellationToken);
-        return true;
     }
 
-    public async Task<bool> RemoverAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task RemoverAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var telefoneUtil = await _context.TelefonesUteis
             .FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
 
         if (telefoneUtil is null)
         {
-            return false;
+            throw new NotFoundException($"Telefone util {id} nao encontrado.");
         }
 
         if (telefoneUtil.Ativo == false)
         {
-            return true;
+            return;
         }
 
         telefoneUtil.Ativo = false;
         await _context.SaveChangesAsync(cancellationToken);
-
-        return true;
     }
 
     private static DTOTelefoneUtil MapToDto(TelefoneUtil telefoneUtil)

@@ -11,7 +11,7 @@ public interface ITelefoneUtilService
 
     Task<DTOTelefoneUtil> CriarAsync(DTOTelefoneUtilCriar dto, CancellationToken cancellationToken = default);
 
-    Task<bool> AtualizarAsync(Guid id, DTOTelefoneUtilAtualizar dto, CancellationToken cancellationToken = default);
+    Task AtualizarAsync(Guid id, DTOTelefoneUtilAtualizar dto, CancellationToken cancellationToken = default);
 
-    Task<bool> RemoverAsync(Guid id, CancellationToken cancellationToken = default);
+    Task RemoverAsync(Guid id, CancellationToken cancellationToken = default);
 }

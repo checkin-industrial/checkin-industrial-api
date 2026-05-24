@@ -1,3 +1,4 @@
+using AppTurismoIndustrial.Api.Shared.Validation;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace AppTurismoIndustrial.Api.Features.Empresas;
@@ -7,20 +8,17 @@ public static class CreateEmpresa
     public static RouteHandlerBuilder MapCreateEmpresa(this RouteGroupBuilder group)
     {
         return group.MapPost("/", Handle)
-            .WithName(nameof(CreateEmpresa));
+            .WithName(nameof(CreateEmpresa))
+            .AddEndpointFilter<ValidationFilter<DTOEmpresaCriar>>();
     }
 
-    private static async Task<Results<Created<DTORespostaEmpresa>, Conflict<object>>> Handle(
+    private static async Task<Created<DTORespostaEmpresa>> Handle(
         DTOEmpresaCriar dto,
-        IEmpresaService service)
+        IEmpresaService service,
+        CancellationToken cancellationToken)
     {
-        var (empresa, cnpjDuplicado) = await service.CriarAsync(dto);
-
-        if (cnpjDuplicado)
-        {
-            return TypedResults.Conflict<object>(new { message = "Ja existe uma empresa cadastrada com este CNPJ." });
-        }
-
-        return TypedResults.Created($"/api/empresas/{empresa!.Id}", empresa);
+        // 409 (CNPJ duplicado) via ConflictException -> ProblemDetailsMiddleware.
+        var empresa = await service.CriarAsync(dto, cancellationToken);
+        return TypedResults.Created($"/api/empresas/{empresa.Id}", empresa);
     }
 }

@@ -182,12 +182,36 @@ if (string.IsNullOrWhiteSpace(apiKey))
     app.Logger.LogWarning("Auth:ApiKey nao configurado - endpoints de escrita estao desprotegidos.");
 }
 
-// ─── Migrations automaticas no startup ──────────────────────────────────────
-// TODO: em prod com multiplas instancias, mover para job dedicado de deploy.
-using (var scope = app.Services.CreateScope())
+// ─── Migrations ────────────────────────────────────────────────────────────
+// Tres modos de operacao:
+//   1. Default (dev / single-instance): aplica migrations no startup +
+//      sobe o servidor normalmente. Compat com fluxo atual.
+//   2. `dotnet AppTurismoIndustrial.Api.dll --migrate-only` (deploy job):
+//      aplica migrations e sai com exit 0. Use como step pre-deploy quando
+//      ha multiplas replicas pra evitar race no Migrate concorrente.
+//   3. `Migrations__SkipOnStartup=true` (prod multi-instancia): nao migra
+//      no startup; assume que ja rodou modo 2 antes de subir.
+//
+// Combinando modo 2 (CI/CD step) + modo 3 (replicas em runtime) tem-se
+// migrations idempotentes e zero risco de race entre instancias.
+var migrateOnly = args.Any(a => string.Equals(a, "--migrate-only", StringComparison.OrdinalIgnoreCase));
+var skipOnStartup = builder.Configuration.GetValue<bool>("Migrations:SkipOnStartup");
+
+if (migrateOnly || !skipOnStartup)
 {
+    using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+
+    if (migrateOnly)
+    {
+        app.Logger.LogInformation("Migrations aplicadas; encerrando (--migrate-only).");
+        return;
+    }
+}
+else
+{
+    app.Logger.LogInformation("Migrations:SkipOnStartup=true - pulando migrate automatico. Verifique se ja rodou o job de migrations.");
 }
 
 // ─── Pipeline ───────────────────────────────────────────────────────────────

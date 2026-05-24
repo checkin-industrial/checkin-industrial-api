@@ -153,9 +153,6 @@ Para gerar uma chave nova: `openssl rand -hex 32` ou similar. Configurar via `Au
 
 - **Migrations no startup** (`Program.cs`): `db.Database.Migrate()` roda automatico ao iniciar.
   Em prod com multiplas instancias, mover para job dedicado de deploy.
-- **Swagger SecurityDefinition**: removido temporariamente porque Swashbuckle 10 mudou o namespace
-  `Microsoft.OpenApi.Models`. UI ainda funciona, so nao tem o botao "Authorize". Re-adicionar em PR
-  futuro usando a nova API.
 - **Test coverage do import de pontos**: o test `ImportarPontosInstitucionais_Deve_Normalizar_Coordenadas`
   foi removido (era quebrado, Moq nao consegue construir AppDbContext sem options). Re-adicionar via
   WebApplicationFactory ou testando `PontoInstitucionalCsvFormatter` direto.

@@ -68,9 +68,9 @@ public class EmpresaNeighborhoodService : IEmpresaNeighborhoodService
         var candidates = await _context.Empresas
             .AsNoTracking()
             .Where(e => e.Id != empresaId)
-            // Vizinhanca publica nunca lista empresas inativas (soft-deleted).
-            // Tratamento `Ativo ?? true` cobre linhas pre-existentes NULL.
-            .Where(e => (e.Ativo ?? true))
+            // Vizinhanca publica so lista empresas ativas (esconde Inativo soft-deleted
+            // e AguardandoRevisao vindas de import nao aprovado).
+            .Where(e => e.Status == StatusEmpresa.Ativo)
             .Where(e => e.Latitude >= minLatitude && e.Latitude <= maxLatitude)
             .Where(e => e.Longitude >= minLongitude && e.Longitude <= maxLongitude)
             .Select(e => new

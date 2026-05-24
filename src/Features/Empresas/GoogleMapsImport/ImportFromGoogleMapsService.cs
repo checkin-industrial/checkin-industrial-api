@@ -189,7 +189,7 @@ public class ImportFromGoogleMapsService : IImportFromGoogleMapsService
             Longitude = (decimal)p.Longitude,
             SituacaoCadastral = SituacaoCadastral.Ativa,
             GooglePlaceId = p.Id,
-            Ativo = false,  // ⭐ fluxo de revisao
+            Status = StatusEmpresa.AguardandoRevisao,  // ⭐ admin revisa antes de publicar
         };
     }
 

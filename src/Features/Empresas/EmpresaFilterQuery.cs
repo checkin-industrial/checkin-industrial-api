@@ -32,7 +32,7 @@ public class EmpresaFilterQuery : IEmpresaFilterQuery
         var setor = string.IsNullOrWhiteSpace(filtros.Setor) ? null : ParseSetor(filtros.Setor);
         var porte = string.IsNullOrWhiteSpace(filtros.Porte) ? null : ParsePorte(filtros.Porte);
         var situacao = string.IsNullOrWhiteSpace(filtros.Situacao) ? null : ParseSituacao(filtros.Situacao);
-        var ativo = string.IsNullOrWhiteSpace(filtros.Ativo) ? null : ParseAtivo(filtros.Ativo);
+        var statusFiltro = ParseStatus(filtros.Status);
 
         if (!string.IsNullOrWhiteSpace(filtros.Setor) && !setor.HasValue)
         {
@@ -93,11 +93,16 @@ public class EmpresaFilterQuery : IEmpresaFilterQuery
             query = query.Where(e => e.NumeroFuncionarios <= filtros.MaxFuncionarios.Value);
         }
 
-        if (ativo.HasValue)
+        if (statusFiltro.HasValue)
         {
-            // (e.Ativo ?? true) cobre linhas pre-existentes que ficaram NULL
-            // antes do default=true ser aplicado na migration.
-            query = query.Where(e => (e.Ativo ?? true) == ativo.Value);
+            var s = statusFiltro.Value;
+            query = query.Where(e => e.Status == s);
+        }
+        else if (string.IsNullOrWhiteSpace(filtros.Status))
+        {
+            // Sem filtro explicito: mostra so Ativo (esconde Inativo e AguardandoRevisao
+            // do publico). Painel admin passa explicitamente ?status=todos quando quiser.
+            query = query.Where(e => e.Status == StatusEmpresa.Ativo);
         }
 
         var resultados = await query
@@ -117,7 +122,7 @@ public class EmpresaFilterQuery : IEmpresaFilterQuery
                 e.MatrizOuFilial,
                 e.Latitude,
                 e.Longitude,
-                e.Ativo
+                e.Status
             })
             .ToListAsync(cancellationToken);
 
@@ -137,7 +142,7 @@ public class EmpresaFilterQuery : IEmpresaFilterQuery
                 MatrizOuFilial = e.MatrizOuFilial.ToString(),
                 Latitude = (double)e.Latitude,
                 Longitude = (double)e.Longitude,
-                Ativo = e.Ativo ?? true,
+                Status = e.Status,
             })
             .ToList();
     }
@@ -179,13 +184,20 @@ public class EmpresaFilterQuery : IEmpresaFilterQuery
         };
     }
 
-    private static bool? ParseAtivo(string ativo)
+    // Retorna null em dois casos com semantica diferente:
+    //  - string vazia -> caller aplica default (Status=Ativo)
+    //  - "todos" -> sem filtro (caller nao deve aplicar default)
+    // Caller distingue via filtros.Status original.
+    private static StatusEmpresa? ParseStatus(string? raw)
     {
-        return ativo.Trim().ToLowerInvariant() switch
+        if (string.IsNullOrWhiteSpace(raw)) return null;
+        return raw.Trim().ToLowerInvariant() switch
         {
-            "true" => true,
-            "false" => false,
-            _ => null
+            "ativo" or "ativos" or "true" => StatusEmpresa.Ativo,
+            "inativo" or "inativos" or "false" => StatusEmpresa.Inativo,
+            "aguardando-revisao" or "aguardando" or "revisao" => StatusEmpresa.AguardandoRevisao,
+            "todos" => null,
+            _ => null,
         };
     }
 }

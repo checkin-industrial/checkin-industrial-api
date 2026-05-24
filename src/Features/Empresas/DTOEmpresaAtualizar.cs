@@ -65,5 +65,5 @@ public class DTOEmpresaAtualizar
 
     public DateTime? DataCadastro { get; set; }
 
-    public bool? Ativo { get; set; }
+    public StatusEmpresa? Status { get; set; }
 }

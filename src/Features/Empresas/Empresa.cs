@@ -80,11 +80,14 @@ public class Empresa
 
     public DateTime DataCadastro { get; set; } = DateTime.UtcNow;
 
-    // Flag de soft-delete (consistente com TelefoneUtil/PontoInstitucional).
-    // Diferente de SituacaoCadastral (status legal na Receita): Ativo eh visibilidade
-    // do registro no sistema. Uma empresa Baixada na Receita pode ainda estar Ativo=true
-    // (visivel no historico) e vice-versa.
-    public bool? Ativo { get; set; } = true;
+    // Visibilidade do registro no sistema. Diferente de SituacaoCadastral (status legal na
+    // Receita): uma empresa Baixada na Receita pode estar Status=Ativo (visivel no historico).
+    // Tres estados:
+    //  - Ativo: visivel no mapa publico + telas de gestao
+    //  - Inativo: soft-deleted, so aparece em "Empresas inativas" para reativacao
+    //  - AguardandoRevisao: criada por import automatico (Google Maps), aguarda admin aprovar
+    [Required]
+    public StatusEmpresa Status { get; set; } = StatusEmpresa.Ativo;
 }
 
 public enum SetorEmpresa
@@ -109,6 +112,13 @@ public enum SituacaoCadastral
     Inativa = 2,
     Suspensa = 3,
     Baixada = 4
+}
+
+public enum StatusEmpresa
+{
+    Ativo = 1,
+    Inativo = 2,
+    AguardandoRevisao = 3,
 }
 
 public enum MatrizOuFilialEmpresa

@@ -22,7 +22,7 @@ public class EmpresaFilterParams
 
     public int? MaxFuncionarios { get; set; }
 
-    // "true" | "false" | null. Match a `Ativo` flag de soft delete.
-    // Omitir = trazer todas (ativas + inativas).
-    public string? Ativo { get; set; }
+    // "ativo" | "inativo" | "aguardando-revisao" | "todos" | null. Omitir = todos.
+    // "ativos" / "inativos" aceitos por compatibilidade com chamadas antigas do painel.
+    public string? Status { get; set; }
 }

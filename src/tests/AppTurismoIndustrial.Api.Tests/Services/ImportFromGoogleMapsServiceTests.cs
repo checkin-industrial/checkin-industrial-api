@@ -13,7 +13,7 @@ namespace AppTurismoIndustrial.Api.Tests.Services;
 public class ImportFromGoogleMapsServiceTests
 {
     [Fact]
-    public async Task Import_DeveCriarEmpresasComAtivoFalse()
+    public async Task Import_DeveCriarEmpresasComStatusAguardandoRevisao()
     {
         var ctx = CreateContext();
         var geocoding = MockGeocoding(-22.5m, -49.0m);
@@ -36,7 +36,7 @@ public class ImportFromGoogleMapsServiceTests
 
         var empresas = await ctx.Empresas.AsNoTracking().ToListAsync();
         Assert.Equal(2, empresas.Count);
-        Assert.All(empresas, e => Assert.False(e.Ativo));
+        Assert.All(empresas, e => Assert.Equal(StatusEmpresa.AguardandoRevisao, e.Status));
         Assert.All(empresas, e => Assert.Null(e.Cnpj));
         Assert.Contains(empresas, e => e.GooglePlaceId == "PLACE-1" && e.Telefone == "(14) 3000-0000");
 
@@ -65,7 +65,7 @@ public class ImportFromGoogleMapsServiceTests
             Latitude = -22.5m,
             Longitude = -49.0m,
             SituacaoCadastral = SituacaoCadastral.Ativa,
-            Ativo = false,
+            Status = StatusEmpresa.AguardandoRevisao,
             Telefone = null,
         });
         await ctx.SaveChangesAsync();
@@ -111,7 +111,7 @@ public class ImportFromGoogleMapsServiceTests
             Latitude = -22.5m,
             Longitude = -49.0m,
             SituacaoCadastral = SituacaoCadastral.Ativa,
-            Ativo = true,
+            Status = StatusEmpresa.Ativo,
         });
         await ctx.SaveChangesAsync();
 

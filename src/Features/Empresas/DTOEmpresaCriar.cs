@@ -65,5 +65,6 @@ public class DTOEmpresaCriar
 
     public DateTime? DataCadastro { get; set; }
 
-    public bool? Ativo { get; set; }
+    // Default Ativo se nao informado. AguardandoRevisao reservado para imports automaticos.
+    public StatusEmpresa? Status { get; set; }
 }

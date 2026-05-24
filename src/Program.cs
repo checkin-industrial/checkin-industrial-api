@@ -1,3 +1,5 @@
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.RateLimiting;
 using AppTurismoIndustrial.Api.Features.Analytics;
 using AppTurismoIndustrial.Api.Features.Empresas;
@@ -31,6 +33,19 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddMemoryCache();
 builder.Services.AddHttpClient();
 builder.Services.AddProblemDetails();
+
+// ─── JSON: enums como string ────────────────────────────────────────────────
+// Default do System.Text.Json serializa enum como inteiro. Configuramos
+// JsonStringEnumConverter para que enums saiam como strings (ex: "industria",
+// "aguardandoRevisao"). JsonNamingPolicy.CamelCase converte os names dos enums
+// pra camelCase (PascalCase -> camelCase). allowIntegerValues=true (default)
+// mantem compatibilidade: requests com ints continuam sendo aceitos no
+// deserialize (importante durante a transicao do painel para enviar strings).
+builder.Services.ConfigureHttpJsonOptions(options =>
+{
+    options.SerializerOptions.Converters.Add(
+        new JsonStringEnumConverter(JsonNamingPolicy.CamelCase, allowIntegerValues: true));
+});
 builder.Services.AddOutputCache(options =>
 {
     var ttl = builder.Configuration.GetValue<int?>("OutputCache:ReadEndpointTtlSeconds") ?? 60;
@@ -152,6 +167,7 @@ builder.Services.AddSwaggerGen(options =>
         Description = "Chave configurada em Auth:ApiKey. Necessaria em endpoints de escrita (Create/Update/Delete/Import/Upload/Geocode).",
     });
     options.OperationFilter<ApiKeySecurityOperationFilter>();
+    options.SchemaFilter<EnumAsStringSchemaFilter>();
 });
 
 var app = builder.Build();

@@ -20,9 +20,10 @@ public class PontoInstitucionalQuery : IPontoInstitucionalQuery
         var query = _context.PontosInstitucionais
             .AsNoTracking();
 
-        if (filtros.Ativo.HasValue)
+        var ativo = FilterHelpers.ParseAtivo(filtros.Ativo);
+        if (ativo.HasValue)
         {
-            query = query.Where(p => (p.Ativo ?? true) == filtros.Ativo.Value);
+            query = query.Where(p => (p.Ativo ?? true) == ativo.Value);
         }
 
         if (!string.IsNullOrWhiteSpace(filtros.Tipo))

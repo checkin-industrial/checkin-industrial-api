@@ -32,6 +32,7 @@ public class EmpresaFilterQuery : IEmpresaFilterQuery
         var setor = string.IsNullOrWhiteSpace(filtros.Setor) ? null : ParseSetor(filtros.Setor);
         var porte = string.IsNullOrWhiteSpace(filtros.Porte) ? null : ParsePorte(filtros.Porte);
         var situacao = string.IsNullOrWhiteSpace(filtros.Situacao) ? null : ParseSituacao(filtros.Situacao);
+        var ativo = string.IsNullOrWhiteSpace(filtros.Ativo) ? null : ParseAtivo(filtros.Ativo);
 
         if (!string.IsNullOrWhiteSpace(filtros.Setor) && !setor.HasValue)
         {
@@ -92,6 +93,13 @@ public class EmpresaFilterQuery : IEmpresaFilterQuery
             query = query.Where(e => e.NumeroFuncionarios <= filtros.MaxFuncionarios.Value);
         }
 
+        if (ativo.HasValue)
+        {
+            // (e.Ativo ?? true) cobre linhas pre-existentes que ficaram NULL
+            // antes do default=true ser aplicado na migration.
+            query = query.Where(e => (e.Ativo ?? true) == ativo.Value);
+        }
+
         var resultados = await query
             .Take(safeLimit)
             .Select(e => new
@@ -108,7 +116,8 @@ public class EmpresaFilterQuery : IEmpresaFilterQuery
                 e.Municipio,
                 e.MatrizOuFilial,
                 e.Latitude,
-                e.Longitude
+                e.Longitude,
+                e.Ativo
             })
             .ToListAsync(cancellationToken);
 
@@ -127,7 +136,8 @@ public class EmpresaFilterQuery : IEmpresaFilterQuery
                 Municipio = e.Municipio,
                 MatrizOuFilial = e.MatrizOuFilial.ToString(),
                 Latitude = (double)e.Latitude,
-                Longitude = (double)e.Longitude
+                Longitude = (double)e.Longitude,
+                Ativo = e.Ativo ?? true,
             })
             .ToList();
     }
@@ -165,6 +175,16 @@ public class EmpresaFilterQuery : IEmpresaFilterQuery
             "inativa" => SituacaoCadastral.Inativa,
             "suspensa" => SituacaoCadastral.Suspensa,
             "baixada" => SituacaoCadastral.Baixada,
+            _ => null
+        };
+    }
+
+    private static bool? ParseAtivo(string ativo)
+    {
+        return ativo.Trim().ToLowerInvariant() switch
+        {
+            "true" => true,
+            "false" => false,
             _ => null
         };
     }

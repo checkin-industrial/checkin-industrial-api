@@ -21,4 +21,8 @@ public class EmpresaFilterParams
     public int? MinFuncionarios { get; set; }
 
     public int? MaxFuncionarios { get; set; }
+
+    // "true" | "false" | null. Match a `Ativo` flag de soft delete.
+    // Omitir = trazer todas (ativas + inativas).
+    public string? Ativo { get; set; }
 }

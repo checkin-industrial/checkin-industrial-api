@@ -10,6 +10,7 @@ using AppTurismoIndustrial.Api.Infrastructure.Persistence;
 using AppTurismoIndustrial.Api.Shared.Auth;
 using AppTurismoIndustrial.Api.Shared.Middleware;
 using AppTurismoIndustrial.Api.Shared.Swagger;
+using FluentValidation;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
@@ -132,6 +133,12 @@ builder.Services
     .AddGeocodingFeature();
 
 builder.Services.AddGoogleMapsImportFeature(builder.Configuration);
+
+// ─── FluentValidation ───────────────────────────────────────────────────────
+// Registra todos IValidator<T> do assembly. Endpoint filters
+// (ValidationFilter<T>) consomem por tipo de DTO; falhas viram 400 via
+// ValidationException -> ProblemDetailsMiddleware.
+builder.Services.AddValidatorsFromAssembly(typeof(Program).Assembly);
 
 // ─── Swagger / OpenAPI ──────────────────────────────────────────────────────
 builder.Services.AddEndpointsApiExplorer();

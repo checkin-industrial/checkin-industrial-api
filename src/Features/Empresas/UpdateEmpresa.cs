@@ -1,3 +1,4 @@
+using AppTurismoIndustrial.Api.Shared.Validation;
 using Microsoft.AspNetCore.Http.HttpResults;
 
 namespace AppTurismoIndustrial.Api.Features.Empresas;
@@ -7,31 +8,19 @@ public static class UpdateEmpresa
     public static RouteHandlerBuilder MapUpdateEmpresa(this RouteGroupBuilder group)
     {
         return group.MapPut("/{id:guid}", Handle)
-            .WithName(nameof(UpdateEmpresa));
+            .WithName(nameof(UpdateEmpresa))
+            .AddEndpointFilter<ValidationFilter<DTOEmpresaAtualizar>>();
     }
 
-    private static async Task<Results<NoContent, BadRequest, NotFound, Conflict<object>>> Handle(
+    private static async Task<NoContent> Handle(
         Guid id,
         DTOEmpresaAtualizar dto,
-        IEmpresaService service)
+        IEmpresaService service,
+        CancellationToken cancellationToken)
     {
-        var (atualizado, naoEncontrada, cnpjDuplicado) = await service.AtualizarAsync(id, dto);
-
-        if (naoEncontrada)
-        {
-            return TypedResults.NotFound();
-        }
-
-        if (cnpjDuplicado)
-        {
-            return TypedResults.Conflict<object>(new { message = "Ja existe uma empresa cadastrada com este CNPJ." });
-        }
-
-        if (!atualizado)
-        {
-            return TypedResults.BadRequest();
-        }
-
+        // 404 (empresa nao encontrada) e 409 (CNPJ duplicado) via excecoes ->
+        // ProblemDetailsMiddleware. Manter contrato HTTP original.
+        await service.AtualizarAsync(id, dto, cancellationToken);
         return TypedResults.NoContent();
     }
 }

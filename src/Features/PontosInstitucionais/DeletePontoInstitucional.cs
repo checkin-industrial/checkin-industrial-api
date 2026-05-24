@@ -10,12 +10,13 @@ public static class DeletePontoInstitucional
             .WithName(nameof(DeletePontoInstitucional));
     }
 
-    private static async Task<Results<NoContent, NotFound>> Handle(
+    private static async Task<NoContent> Handle(
         Guid id,
         IPontoInstitucionalService service,
         CancellationToken cancellationToken)
     {
-        var removido = await service.RemoverAsync(id, cancellationToken);
-        return removido ? TypedResults.NoContent() : TypedResults.NotFound();
+        // 404 via NotFoundException -> ProblemDetailsMiddleware.
+        await service.RemoverAsync(id, cancellationToken);
+        return TypedResults.NoContent();
     }
 }

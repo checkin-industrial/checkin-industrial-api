@@ -1,6 +1,6 @@
 
 
-using AppTurismoIndustrial.Api.Infrastructure.Persistence;
+using AppTurismoIndustrial.Api.Shared.Errors;
 using Microsoft.EntityFrameworkCore;
 
 namespace AppTurismoIndustrial.Api.Features.Empresas;
@@ -14,7 +14,7 @@ public class EmpresaService : IEmpresaService
         _context = context;
     }
 
-    public async Task<(DTORespostaEmpresa? empresa, bool cnpjDuplicado)> CriarAsync(DTOEmpresaCriar dto, CancellationToken cancellationToken = default)
+    public async Task<DTORespostaEmpresa> CriarAsync(DTOEmpresaCriar dto, CancellationToken cancellationToken = default)
     {
         var cnpjJaExiste = await _context.Empresas
             .AsNoTracking()
@@ -22,7 +22,7 @@ public class EmpresaService : IEmpresaService
 
         if (cnpjJaExiste)
         {
-            return (null, true);
+            throw new ConflictException("Ja existe uma empresa cadastrada com este CNPJ.");
         }
 
         var empresa = new Empresa
@@ -50,7 +50,7 @@ public class EmpresaService : IEmpresaService
         _context.Empresas.Add(empresa);
         await _context.SaveChangesAsync(cancellationToken);
 
-        return (ToResponseDto(empresa), false);
+        return ToResponseDto(empresa);
     }
 
     public async Task<IReadOnlyCollection<DTORespostaEmpresa>> ListarAsync(CancellationToken cancellationToken = default)
@@ -116,13 +116,13 @@ public class EmpresaService : IEmpresaService
             .FirstOrDefaultAsync(cancellationToken);
     }
 
-    public async Task<(bool atualizado, bool naoEncontrada, bool cnpjDuplicado)> AtualizarAsync(Guid id, DTOEmpresaAtualizar dto, CancellationToken cancellationToken = default)
+    public async Task<DTORespostaEmpresa> AtualizarAsync(Guid id, DTOEmpresaAtualizar dto, CancellationToken cancellationToken = default)
     {
         var empresa = await _context.Empresas.FirstOrDefaultAsync(e => e.Id == id, cancellationToken);
 
         if (empresa is null)
         {
-            return (false, true, false);
+            throw new NotFoundException($"Empresa {id} nao encontrada.");
         }
 
         var cnpjJaExisteEmOutraEmpresa = await _context.Empresas
@@ -131,7 +131,7 @@ public class EmpresaService : IEmpresaService
 
         if (cnpjJaExisteEmOutraEmpresa)
         {
-            return (false, false, true);
+            throw new ConflictException("Ja existe uma empresa cadastrada com este CNPJ.");
         }
 
         empresa.Cnpj = dto.Cnpj;
@@ -158,10 +158,10 @@ public class EmpresaService : IEmpresaService
 
         await _context.SaveChangesAsync(cancellationToken);
 
-        return (true, false, false);
+        return ToResponseDto(empresa);
     }
 
-    public async Task<bool> RemoverAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task RemoverAsync(Guid id, CancellationToken cancellationToken = default)
     {
         // Soft delete: marca Status=Inativo em vez de remover a linha. Empresas
         // com Status=AguardandoRevisao (vindas de import) tambem caem para Inativo
@@ -170,18 +170,16 @@ public class EmpresaService : IEmpresaService
 
         if (empresa is null)
         {
-            return false;
+            throw new NotFoundException($"Empresa {id} nao encontrada.");
         }
 
         if (empresa.Status == StatusEmpresa.Inativo)
         {
-            return true;
+            return;
         }
 
         empresa.Status = StatusEmpresa.Inativo;
         await _context.SaveChangesAsync(cancellationToken);
-
-        return true;
     }
 
     private static DTORespostaEmpresa ToResponseDto(Empresa empresa)

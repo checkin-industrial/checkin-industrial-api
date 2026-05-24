@@ -1,6 +1,7 @@
 
 
 using AppTurismoIndustrial.Api.Infrastructure.Persistence;
+using AppTurismoIndustrial.Api.Shared.Errors;
 using Microsoft.EntityFrameworkCore;
 using Moq;
 using Xunit;
@@ -18,12 +19,11 @@ public class EmpresaServiceTests
         var dto = CriarDtoEmpresa("12345678000195");
 
         // Act
-        var (empresa, cnpjDuplicado) = await service.CriarAsync(dto);
+        var empresa = await service.CriarAsync(dto);
 
         // Assert
-        Assert.False(cnpjDuplicado);
         Assert.NotNull(empresa);
-        Assert.Equal(dto.Cnpj, empresa!.Cnpj);
+        Assert.Equal(dto.Cnpj, empresa.Cnpj);
         Assert.Equal(dto.RazaoSocial, empresa.RazaoSocial);
 
         var totalEmpresas = await contextMock.Object.Empresas.CountAsync();
@@ -33,7 +33,7 @@ public class EmpresaServiceTests
     }
 
     [Fact]
-    public async Task CriarEmpresa_ComCnpjDuplicado_DeveImpedirCriacao()
+    public async Task CriarEmpresa_ComCnpjDuplicado_DeveLancarConflictException()
     {
         // Arrange
         var contextMock = CreateContextMock();
@@ -63,15 +63,49 @@ public class EmpresaServiceTests
 
         var dto = CriarDtoEmpresa("12345678000195");
 
-        // Act
-        var (empresa, cnpjDuplicado) = await service.CriarAsync(dto);
-
-        // Assert
-        Assert.True(cnpjDuplicado);
-        Assert.Null(empresa);
+        // Act + Assert
+        await Assert.ThrowsAsync<ConflictException>(() => service.CriarAsync(dto));
 
         var totalEmpresas = await contextMock.Object.Empresas.CountAsync();
         Assert.Equal(1, totalEmpresas);
+    }
+
+    [Fact]
+    public async Task RemoverAsync_QuandoEmpresaNaoExiste_DeveLancarNotFoundException()
+    {
+        var contextMock = CreateContextMock();
+        var service = new EmpresaService(contextMock.Object);
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.RemoverAsync(Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task AtualizarAsync_QuandoEmpresaNaoExiste_DeveLancarNotFoundException()
+    {
+        var contextMock = CreateContextMock();
+        var service = new EmpresaService(contextMock.Object);
+
+        var dto = new DTOEmpresaAtualizar
+        {
+            Cnpj = "12345678000195",
+            RazaoSocial = "Atualizada",
+            NomeFantasia = "Atualizada",
+            CnaePrincipal = "6201500",
+            Setor = SetorEmpresa.Servicos,
+            Porte = PorteEmpresa.Me,
+            NumeroFuncionarios = 5,
+            Endereco = "Rua Atualizada, 1",
+            Telefone = "1100000000",
+            Cep = "13010099",
+            Municipio = "Campinas",
+            DescricaoCnae = "Servicos",
+            MatrizOuFilial = MatrizOuFilialEmpresa.Matriz,
+            Latitude = -22.6m,
+            Longitude = -48.8m,
+            SituacaoCadastral = SituacaoCadastral.Ativa,
+        };
+
+        await Assert.ThrowsAsync<NotFoundException>(() => service.AtualizarAsync(Guid.NewGuid(), dto));
     }
 
     [Fact]

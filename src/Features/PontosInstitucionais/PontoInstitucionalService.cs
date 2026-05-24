@@ -1,6 +1,7 @@
 
 
 using AppTurismoIndustrial.Api.Infrastructure.Persistence;
+using AppTurismoIndustrial.Api.Shared.Errors;
 using Microsoft.EntityFrameworkCore;
 
 namespace AppTurismoIndustrial.Api.Features.PontosInstitucionais;
@@ -64,14 +65,14 @@ public class PontoInstitucionalService : IPontoInstitucionalService
         return MapToDto(ponto);
     }
 
-    public async Task<bool> AtualizarAsync(Guid id, DTOPontoInstitucionalAtualizar dto, CancellationToken cancellationToken = default)
+    public async Task AtualizarAsync(Guid id, DTOPontoInstitucionalAtualizar dto, CancellationToken cancellationToken = default)
     {
         var ponto = await _context.PontosInstitucionais
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
         if (ponto is null)
         {
-            return false;
+            throw new NotFoundException($"Ponto institucional {id} nao encontrado.");
         }
 
         ponto.Nome = dto.Nome;
@@ -94,28 +95,25 @@ public class PontoInstitucionalService : IPontoInstitucionalService
         ponto.Ativo = dto.Ativo;
 
         await _context.SaveChangesAsync(cancellationToken);
-        return true;
     }
 
-    public async Task<bool> RemoverAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task RemoverAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var ponto = await _context.PontosInstitucionais
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
         if (ponto is null)
         {
-            return false;
+            throw new NotFoundException($"Ponto institucional {id} nao encontrado.");
         }
 
         if (ponto.Ativo == false)
         {
-            return true;
+            return;
         }
 
         ponto.Ativo = false;
         await _context.SaveChangesAsync(cancellationToken);
-
-        return true;
     }
 
     private static DTOPontoInstitucional MapToDto(PontoInstitucional ponto)

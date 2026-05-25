@@ -2,6 +2,7 @@
 
 using AppTurismoIndustrial.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using System.Data.Common;
 
 namespace AppTurismoIndustrial.Api.Features.Empresas;
@@ -9,13 +10,14 @@ namespace AppTurismoIndustrial.Api.Features.Empresas;
 public class EmpresaMapService : IEmpresaMapService
 {
     private readonly AppDbContext _context;
-    private const int MaxMapRecords = 5000;
+    private readonly int _maxMapRecords;
     private const double DefaultMapCenterLatitude = -22.60d;
     private const double DefaultMapCenterLongitude = -48.80d;
 
-    public EmpresaMapService(AppDbContext context)
+    public EmpresaMapService(AppDbContext context, IOptions<LimitsOptions>? limits = null)
     {
         _context = context;
+        _maxMapRecords = (limits?.Value ?? new LimitsOptions()).MaxMapRecords;
     }
 
     public async Task<IReadOnlyCollection<EmpresaMapDTO>> ListarParaMapaAsync(CancellationToken cancellationToken = default)
@@ -64,10 +66,10 @@ public class EmpresaMapService : IEmpresaMapService
 
         var limitParam = command.CreateParameter();
         limitParam.ParameterName = "@limit";
-        limitParam.Value = MaxMapRecords;
+        limitParam.Value = _maxMapRecords;
         command.Parameters.Add(limitParam);
 
-        var resultados = new List<EmpresaMapDTO>(MaxMapRecords);
+        var resultados = new List<EmpresaMapDTO>(_maxMapRecords);
         await using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
         while (await reader.ReadAsync(cancellationToken))

@@ -1,17 +1,19 @@
 using System.Text.RegularExpressions;
 
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace AppTurismoIndustrial.Api.Features.Empresas;
 
 public class EmpresaFilterQuery : IEmpresaFilterQuery
 {
     private readonly AppDbContext _context;
-    private const int MaxFilterRecords = 10000;
+    private readonly int _maxFilterRecords;
 
-    public EmpresaFilterQuery(AppDbContext context)
+    public EmpresaFilterQuery(AppDbContext context, IOptions<LimitsOptions>? limits = null)
     {
         _context = context;
+        _maxFilterRecords = (limits?.Value ?? new LimitsOptions()).MaxFilterRecords;
     }
 
     public async Task<IReadOnlyCollection<EmpresaFilterDTO>> ConsultarAsync(
@@ -19,7 +21,7 @@ public class EmpresaFilterQuery : IEmpresaFilterQuery
         int limit,
         CancellationToken cancellationToken = default)
     {
-        var safeLimit = Math.Min(Math.Max(limit, 1), MaxFilterRecords);
+        var safeLimit = Math.Min(Math.Max(limit, 1), _maxFilterRecords);
         var nomeFantasiaNormalizado = string.IsNullOrWhiteSpace(filtros.NomeFantasia)
             ? null
             : filtros.NomeFantasia.Trim().ToLowerInvariant();

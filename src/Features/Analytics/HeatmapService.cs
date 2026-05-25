@@ -1,15 +1,19 @@
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Options;
 
 namespace AppTurismoIndustrial.Api.Features.Analytics;
 
 public class HeatmapService : IHeatmapService
 {
     private readonly IMapaCalorIndustrialQuery _mapaCalorIndustrialQuery;
-    private const int MaxPointsForFrontend = 5000;
+    private readonly int _maxPointsForFrontend;
 
-    public HeatmapService(IMapaCalorIndustrialQuery mapaCalorIndustrialQuery)
+    public HeatmapService(
+        IMapaCalorIndustrialQuery mapaCalorIndustrialQuery,
+        IOptions<LimitsOptions>? limits = null)
     {
         _mapaCalorIndustrialQuery = mapaCalorIndustrialQuery;
+        _maxPointsForFrontend = (limits?.Value ?? new LimitsOptions()).MaxPointsForFrontend;
     }
 
     public async Task<IReadOnlyCollection<HeatmapPointDTO>> ObterHeatmapAsync(
@@ -25,7 +29,7 @@ public class HeatmapService : IHeatmapService
         return pontos
             .Where(p => p.Density > 0)
             .OrderByDescending(p => p.Density)
-            .Take(MaxPointsForFrontend)
+            .Take(_maxPointsForFrontend)
             .Select(p => new HeatmapPointDTO
             {
                 Latitude = Math.Round(p.Latitude, 6),

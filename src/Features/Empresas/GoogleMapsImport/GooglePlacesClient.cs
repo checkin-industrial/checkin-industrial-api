@@ -62,8 +62,8 @@ public class GooglePlacesClient : IGooglePlacesClient
             },
         };
 
-        var baseUrl = _options.PlacesBaseUrl.TrimEnd('/');
-        var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/places:searchNearby")
+        var endpointUrl = $"{_options.PlacesBaseUrl.TrimEnd('/')}/places:searchNearby";
+        var request = new HttpRequestMessage(HttpMethod.Post, endpointUrl)
         {
             Content = JsonContent.Create(body),
         };
@@ -72,11 +72,22 @@ public class GooglePlacesClient : IGooglePlacesClient
         request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         _logger.LogInformation(
-            "Google Places NearbySearch: lat={Lat} lng={Lng} radius={Radius}m types=[{Types}]",
-            latitude, longitude, radiusMeters, string.Join(",", includedTypes));
+            "Google Places NearbySearch iniciando: url={Url} type=NearbySearch lat={Lat} lng={Lng} radius={Radius}m includedTypes=[{Types}]",
+            endpointUrl, latitude, longitude, radiusMeters, string.Join(",", includedTypes));
 
-        var response = await _http.SendAsync(request, cancellationToken);
-        var rawJson = await response.Content.ReadAsStringAsync(cancellationToken);
+        HttpResponseMessage response;
+        string rawJson;
+        try
+        {
+            response = await _http.SendAsync(request, cancellationToken);
+            rawJson = await response.Content.ReadAsStringAsync(cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            // Nao logar ApiKey (vai em header, nao em mensagem) — exception so tem url + tipo.
+            _logger.LogError(ex, "Erro ao chamar Google Places NearbySearch em {Url}", endpointUrl);
+            throw;
+        }
 
         if (!response.IsSuccessStatusCode)
         {

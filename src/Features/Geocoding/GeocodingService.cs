@@ -53,6 +53,11 @@ public class GeocodingService : IGeocodingService
 
         try
         {
+            _logger.LogInformation(
+                "Geocodificando endereco via {Provider}: {Endereco}",
+                _provider.ProviderName,
+                endereco);
+
             // Chama provedor externo
             var resultado_obtido = await _provider.GeocodeAsync(endereco, cidade, estado, cancellationToken);
 

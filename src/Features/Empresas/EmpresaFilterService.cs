@@ -1,14 +1,16 @@
+using Microsoft.Extensions.Options;
 
 namespace AppTurismoIndustrial.Api.Features.Empresas;
 
 public class EmpresaFilterService : IEmpresaFilterService
 {
     private readonly IEmpresaFilterQuery _empresaFilterQuery;
-    private const int MaxFilterRecords = 10000;
+    private readonly int _maxFilterRecords;
 
-    public EmpresaFilterService(IEmpresaFilterQuery empresaFilterQuery)
+    public EmpresaFilterService(IEmpresaFilterQuery empresaFilterQuery, IOptions<LimitsOptions>? limits = null)
     {
         _empresaFilterQuery = empresaFilterQuery;
+        _maxFilterRecords = (limits?.Value ?? new LimitsOptions()).MaxFilterRecords;
     }
 
     public async Task<IReadOnlyCollection<EmpresaFilterDTO>> FiltrarAsync(
@@ -17,7 +19,7 @@ public class EmpresaFilterService : IEmpresaFilterService
     {
         var resultado = await _empresaFilterQuery.ConsultarAsync(
             filtros,
-            MaxFilterRecords,
+            _maxFilterRecords,
             cancellationToken);
 
         // Mapeamento explícito para manter o contrato de saída estável na camada de serviço.
@@ -43,7 +45,7 @@ public class EmpresaFilterService : IEmpresaFilterService
                 Longitude = item.Longitude,
                 Status = item.Status,
             })
-            .Take(MaxFilterRecords)
+            .Take(_maxFilterRecords)
             .ToList();
     }
 }

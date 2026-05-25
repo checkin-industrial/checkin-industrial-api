@@ -2,6 +2,7 @@
 
 using AppTurismoIndustrial.Api.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace AppTurismoIndustrial.Api.Features.Empresas.Importacao;
 
@@ -9,18 +10,33 @@ namespace AppTurismoIndustrial.Api.Features.Empresas.Importacao;
 /// Serviço de importação de empresas com suporte a múltiplos formatos e grandes volumes.
 /// Implementa validação, deduplicação e persistência em batches com logging detalhado.
 /// </summary>
+/// <remarks>
+/// <para>
+/// <b>Excecao consciente ao padrao "exceptions over bool":</b> os helpers <c>ValidarRegistro</c>,
+/// <c>ConvertToEmpresa</c> e <c>AtualizarEmpresa</c> retornam bool/nullable em vez de lancar
+/// excecoes. Isso e proposital — o pipeline de importacao processa em batch e ACUMULA erros
+/// (em <c>resultado.Errors</c>) para reportar todas as falhas de uma vez, sem interromper as
+/// linhas validas. Trocar por excecoes forcaria try/catch por linha (custo de perf + ruido
+/// visual) ou quebraria o contrato de "best-effort batch". Para erros sistemicos (DB, IO),
+/// continuamos usando o bloco catch externo + erro "SystemError" no resultado.
+/// </para>
+/// </remarks>
 public class ImportacaoEmpresasService : IImportacaoEmpresasService
 {
     private readonly AppDbContext _context;
     private readonly ILogger<ImportacaoEmpresasService> _logger;
-    private const int DefaultBatchSize = 1000; // Processa 1k registros por lote
     private readonly int _batchSize;
 
-    public ImportacaoEmpresasService(AppDbContext context, ILogger<ImportacaoEmpresasService> logger, int? batchSize = null)
+    public ImportacaoEmpresasService(
+        AppDbContext context,
+        ILogger<ImportacaoEmpresasService> logger,
+        int? batchSize = null,
+        IOptions<LimitsOptions>? limits = null)
     {
         _context = context;
         _logger = logger;
-        _batchSize = batchSize ?? DefaultBatchSize;
+        // Prioridade: override explicito (batchSize) > config (Limits:DefaultBatchSize) > default da classe.
+        _batchSize = batchSize ?? (limits?.Value ?? new LimitsOptions()).DefaultBatchSize;
     }
 
     public async Task<EmpresaImportResult> ImportarAsync(

@@ -97,7 +97,7 @@ agente de IA (ou humano) precisa abrir para entender ou modificar a feature.
 
 ## Como rodar localmente
 
-Pré-requisitos: .NET 9 SDK + Docker (para Postgres).
+Pré-requisitos: .NET 10 SDK + Docker (para Postgres).
 
 ```bash
 # Postgres + API + Painel via docker-compose (recomendado):

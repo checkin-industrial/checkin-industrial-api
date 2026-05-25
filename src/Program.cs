@@ -10,6 +10,7 @@ using AppTurismoIndustrial.Api.Features.PontosInstitucionais.Importacao;
 using AppTurismoIndustrial.Api.Features.TelefonesUteis;
 using AppTurismoIndustrial.Api.Infrastructure.Persistence;
 using AppTurismoIndustrial.Api.Shared.Auth;
+using AppTurismoIndustrial.Api.Shared.Config;
 using AppTurismoIndustrial.Api.Shared.Middleware;
 using AppTurismoIndustrial.Api.Shared.Swagger;
 using FluentValidation;
@@ -51,6 +52,12 @@ builder.Services.AddOutputCache(options =>
     var ttl = builder.Configuration.GetValue<int?>("OutputCache:ReadEndpointTtlSeconds") ?? 60;
     options.AddPolicy("ReadEndpoint", b => b.Expire(TimeSpan.FromSeconds(ttl)));
 });
+
+// ─── Limits (caps de paginacao / batch sizes) ───────────────────────────────
+// Defaults na classe replicam as constantes historicas dos services.
+// Se a secao `Limits` nao existir, os getters default valem (comportamento identico
+// ao codigo pre-extracao).
+builder.Services.Configure<LimitsOptions>(builder.Configuration.GetSection("Limits"));
 
 // ─── Response compression ───────────────────────────────────────────────────
 builder.Services.AddResponseCompression(options =>

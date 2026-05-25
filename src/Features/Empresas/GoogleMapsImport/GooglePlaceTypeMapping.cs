@@ -6,6 +6,17 @@ namespace AppTurismoIndustrial.Api.Features.Empresas.GoogleMapsImport;
 // O setor da Empresa e decisao local (Industria/Comercio/Servicos). A escolha aqui
 // foi Opcao 1 do plano (reusar Setor existente) para evitar migration extra. Cada
 // tipo de busca mapeia tambem o Setor default a usar pra empresas cadastradas.
+//
+// "sem-filtro" e um caso especial: GooglePlaceTypes vazio sinaliza pro
+// GooglePlacesClient OMITIR o campo includedTypes na requisicao — assim a Places
+// API retorna lugares de qualquer tipo dentro do raio. Setor default Comercio
+// (escolha pragmatica: maioria dos lugares retornados sao comercio; admin pode
+// ajustar manualmente apos a importacao, que sempre cria com AguardandoRevisao).
+//
+// "industria" passou a usar "manufacturer" (Table A da Places API New, categoria
+// Business). O tipo legacy "industrial_park" foi descontinuado na API New — a
+// substituicao "manufacturer" e mais estreita (pega so fabricantes, nao polos
+// industriais inteiros) mas e o mais proximo disponivel.
 public static class GooglePlaceTypeMapping
 {
     public record TipoBusca(
@@ -15,7 +26,8 @@ public static class GooglePlaceTypeMapping
 
     public static readonly IReadOnlyList<TipoBusca> All = new List<TipoBusca>
     {
-        new("industria", new[] { "industrial_park" }, SetorEmpresa.Industria),
+        new("sem-filtro", Array.Empty<string>(), SetorEmpresa.Comercio),
+        new("industria", new[] { "manufacturer" }, SetorEmpresa.Industria),
         new("loja", new[] { "store" }, SetorEmpresa.Comercio),
         new("supermercado", new[] { "supermarket" }, SetorEmpresa.Comercio),
         new("farmacia", new[] { "pharmacy" }, SetorEmpresa.Comercio),

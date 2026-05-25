@@ -48,19 +48,21 @@ public class GooglePlacesClient : IGooglePlacesClient
                 "GoogleMaps:ApiKey nao configurada. Defina via env var GoogleMaps__ApiKey.");
         }
 
-        var body = new
+        // Quando includedTypes for vazio, OMITIR o campo na requisicao
+        // (Places API New retorna 400 se enviarmos "includedTypes": []).
+        // Sem o campo, a API retorna lugares de qualquer tipo no raio —
+        // comportamento do slug "sem-filtro".
+        var locationRestriction = new
         {
-            includedTypes,
-            maxResultCount = 20,
-            locationRestriction = new
+            circle = new
             {
-                circle = new
-                {
-                    center = new { latitude, longitude },
-                    radius = (double)radiusMeters,
-                },
+                center = new { latitude, longitude },
+                radius = (double)radiusMeters,
             },
         };
+        object body = includedTypes.Count == 0
+            ? new { maxResultCount = 20, locationRestriction }
+            : new { includedTypes, maxResultCount = 20, locationRestriction };
 
         var endpointUrl = $"{_options.PlacesBaseUrl.TrimEnd('/')}/places:searchNearby";
         var request = new HttpRequestMessage(HttpMethod.Post, endpointUrl)

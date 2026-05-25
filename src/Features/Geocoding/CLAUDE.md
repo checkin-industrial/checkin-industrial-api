@@ -14,11 +14,19 @@ O painel atual depende dela. Antes de renomear pra `/api/geocode`, alinhar com `
 
 ## Servicos
 
-- `IGeocodingService` / `GeocodingService` — fachada com cache.
+- `IGeocodingService` / `GeocodingService` — fachada com cache. Quando o input casa
+  `ViaCepClient.CepRegex` (ex: "18681420", "CEP 18681-420"), invoca o ViaCEP primeiro
+  pra resolver CEP -> endereco estruturado (logradouro, bairro, localidade, UF) e
+  reusa essa string completa como query do Nominatim. Sem ViaCEP, Nominatim falha
+  em muitos CEPs do interior — testes mostraram CEP de Lencois Paulista sendo
+  geolocalizado em Araraquara (50 km de erro).
 - `IGeocodingProvider` (interface) — abstracao do provedor.
 - `StubGeocodingProvider` — implementacao via Nominatim OSM. Apesar do nome "stub", e funcional;
   a nomenclatura veio de quando era stubbed. Pode ser renomeado pra `NominatimGeocodingProvider`
   num PR futuro (atualizar registro DI em `GeocodingModule.cs`).
+- `IViaCepClient` / `ViaCepClient` — resolve CEP brasileiro via [ViaCEP](https://viacep.com.br)
+  (publico, gratuito, sem auth). Returna `ViaCepAddress` ou `null` em CEP invalido /
+  erro de rede (o GeocodingService faz fallback pra Nominatim direto nesse caso).
 - `GeocodeResult` (model interno) — definido em `IGeocodingService.cs` (campos `Latitude`, `Longitude`,
   `Accuracy`, `Provider`, `ObtainedAt`).
 

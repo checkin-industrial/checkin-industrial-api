@@ -25,7 +25,7 @@ public class ImportFromGoogleMapsServiceTests
         var result = await service.ImportAsync(new DTOImportFromGoogleMapsRequest
         {
             Cep = "17000000",
-            RaioMetros = 5000,
+            RaioMetros = 800,
             Tipo = "loja",
         });
 
@@ -78,7 +78,7 @@ public class ImportFromGoogleMapsServiceTests
         var result = await service.ImportAsync(new DTOImportFromGoogleMapsRequest
         {
             Cep = "17000000",
-            RaioMetros = 5000,
+            RaioMetros = 800,
             Tipo = "loja",
         });
 
@@ -123,7 +123,7 @@ public class ImportFromGoogleMapsServiceTests
         var result = await service.ImportAsync(new DTOImportFromGoogleMapsRequest
         {
             Cep = "17000000",
-            RaioMetros = 5000,
+            RaioMetros = 800,
             Tipo = "loja",
         });
 
@@ -160,7 +160,7 @@ public class ImportFromGoogleMapsServiceTests
             service.ImportAsync(new DTOImportFromGoogleMapsRequest
             {
                 Cep = "17000000",
-                RaioMetros = 5000,
+                RaioMetros = 800,
                 Tipo = "tipo-inexistente",
             }));
     }
@@ -182,7 +182,7 @@ public class ImportFromGoogleMapsServiceTests
             service.ImportAsync(new DTOImportFromGoogleMapsRequest
             {
                 Cep = "17000000",
-                RaioMetros = 5000,
+                RaioMetros = 800,
                 Tipo = "loja",
             }));
     }

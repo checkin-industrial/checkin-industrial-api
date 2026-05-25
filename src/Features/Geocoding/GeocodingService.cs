@@ -14,6 +14,7 @@ public class GeocodingService : IGeocodingService
     private readonly IMemoryCache _cache;
     private readonly ILogger<GeocodingService> _logger;
     private readonly IGeocodingProvider _provider;
+    private readonly IViaCepClient _viaCep;
 
     // Cacheia por até 30 dias para evitar chamadas repetidas
     private readonly MemoryCacheEntryOptions _cacheOptions = new()
@@ -22,11 +23,16 @@ public class GeocodingService : IGeocodingService
         SlidingExpiration = TimeSpan.FromDays(7)
     };
 
-    public GeocodingService(IMemoryCache cache, ILogger<GeocodingService> logger, IGeocodingProvider provider)
+    public GeocodingService(
+        IMemoryCache cache,
+        ILogger<GeocodingService> logger,
+        IGeocodingProvider provider,
+        IViaCepClient viaCep)
     {
         _cache = cache;
         _logger = logger;
         _provider = provider;
+        _viaCep = viaCep;
     }
 
     public async Task<GeocodeResult?> GeocodeAsync(
@@ -53,13 +59,48 @@ public class GeocodingService : IGeocodingService
 
         try
         {
+            // Estrategia em 2 passos pra CEP brasileiro: ViaCEP primeiro (resolve
+            // CEP -> endereco estruturado, alta precisao para Brasil) e dai
+            // Nominatim geocodifica a string completa. Sem ViaCEP, Nominatim erra
+            // bastante em CEPs do interior (testes: CEP 18681420 caia em Araraquara
+            // em vez de Lencois Paulista, 50 km de erro).
+            string queryParaGeocoder = endereco;
+            string? cidadeEfetiva = cidade;
+            string? estadoEfetivo = estado;
+
+            if (ViaCepClient.CepRegex.IsMatch(endereco))
+            {
+                _logger.LogInformation("Input parece CEP — consultando ViaCEP: {Endereco}", endereco);
+                var viaCepResult = await _viaCep.ResolveAsync(endereco, cancellationToken);
+                if (viaCepResult is not null)
+                {
+                    // Monta o endereco mais especifico que o ViaCEP nos deu — Nominatim
+                    // tem cobertura boa pra logradouros/municipios brasileiros desde que
+                    // a query seja rica o suficiente.
+                    var partes = new List<string>();
+                    if (!string.IsNullOrWhiteSpace(viaCepResult.Logradouro)) partes.Add(viaCepResult.Logradouro);
+                    if (!string.IsNullOrWhiteSpace(viaCepResult.Bairro)) partes.Add(viaCepResult.Bairro);
+                    partes.Add(viaCepResult.Localidade);
+                    queryParaGeocoder = string.Join(", ", partes);
+                    cidadeEfetiva = viaCepResult.Localidade;
+                    estadoEfetivo = viaCepResult.Uf;
+                    _logger.LogInformation(
+                        "ViaCEP resolveu {Endereco} -> {Query} ({Cidade}/{Uf})",
+                        endereco, queryParaGeocoder, cidadeEfetiva, estadoEfetivo);
+                }
+                else
+                {
+                    _logger.LogInformation("ViaCEP nao resolveu — fallback pra query direta no Nominatim");
+                }
+            }
+
             _logger.LogInformation(
                 "Geocodificando endereco via {Provider}: {Endereco}",
                 _provider.ProviderName,
-                endereco);
+                queryParaGeocoder);
 
             // Chama provedor externo
-            var resultado_obtido = await _provider.GeocodeAsync(endereco, cidade, estado, cancellationToken);
+            var resultado_obtido = await _provider.GeocodeAsync(queryParaGeocoder, cidadeEfetiva, estadoEfetivo, cancellationToken);
 
             if (resultado_obtido != null)
             {

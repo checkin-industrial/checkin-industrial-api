@@ -5,6 +5,7 @@ public static class GeocodingModule
     public static IServiceCollection AddGeocodingFeature(this IServiceCollection services)
     {
         services.AddScoped<IGeocodingProvider, StubGeocodingProvider>();
+        services.AddScoped<IViaCepClient, ViaCepClient>();
         services.AddScoped<IGeocodingService, GeocodingService>();
         return services;
     }

@@ -52,9 +52,10 @@ public class GeocodingServiceTests
         Assert.NotNull(result);
         Assert.Equal(-22.60m, result!.Latitude);
         Assert.Equal(-48.80m, result.Longitude);
-        // O Provider deve ter sido chamado com o endereco enriquecido pelo ViaCEP,
-        // nao com "CEP 18681420".
-        Assert.Equal("Rua Francisco Marins, Nucleo Habitacional Joao Zillo III, Lencois Paulista", capturedEndereco);
+        // O Provider deve ter sido chamado com o logradouro do ViaCEP + cidade/uf
+        // como hints separados (Nominatim aceita bem assim). Bairro NAO entra pq
+        // OSM Brasil raramente tem bairros como entidades pesquisaveis.
+        Assert.Equal("Rua Francisco Marins", capturedEndereco);
         Assert.Equal("Lencois Paulista", capturedCidade);
         Assert.Equal("SP", capturedEstado);
     }

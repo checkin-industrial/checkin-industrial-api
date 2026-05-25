@@ -59,14 +59,20 @@ public class GeocodingService : IGeocodingService
 
         try
         {
-            // Estrategia em 2 passos pra CEP brasileiro: ViaCEP primeiro (resolve
-            // CEP -> endereco estruturado, alta precisao para Brasil) e dai
-            // Nominatim geocodifica a string completa. Sem ViaCEP, Nominatim erra
-            // bastante em CEPs do interior (testes: CEP 18681420 caia em Araraquara
-            // em vez de Lencois Paulista, 50 km de erro).
-            string queryParaGeocoder = endereco;
-            string? cidadeEfetiva = cidade;
-            string? estadoEfetivo = estado;
+            // Estrategia em multi-passo pra CEP brasileiro:
+            // 1. ViaCEP resolve CEP -> endereco estruturado (logradouro, localidade, uf).
+            // 2. Nominatim geocodifica a query mais especifica que ele consegue.
+            //
+            // Monta lista de queries candidatas em ordem da mais especifica pra mais
+            // generica. Cada candidata e tentada no provedor; primeira que retornar
+            // result nao-nulo vence. Padroes observados no OSM Brasil:
+            //   - Logradouro + Cidade: tipicamente acerta (logradouros sao bem mapeados)
+            //   - Bairro + Cidade: tipicamente VAZIO (bairros raramente mapeados como
+            //     entidades pesquisaveis no OSM Brasil — proposital pulado abaixo)
+            //   - So Cidade: fallback que sempre acerta para municipios reais
+            // Sem isso, CEPs do interior cairiam em municipios errados (ex: CEP 18681420
+            // / Lencois Paulista era geocodificado em Araraquara, 50 km de erro).
+            var candidates = new List<(string Endereco, string? Cidade, string? Estado)>();
 
             if (ViaCepClient.CepRegex.IsMatch(endereco))
             {
@@ -74,19 +80,18 @@ public class GeocodingService : IGeocodingService
                 var viaCepResult = await _viaCep.ResolveAsync(endereco, cancellationToken);
                 if (viaCepResult is not null)
                 {
-                    // Monta o endereco mais especifico que o ViaCEP nos deu — Nominatim
-                    // tem cobertura boa pra logradouros/municipios brasileiros desde que
-                    // a query seja rica o suficiente.
-                    var partes = new List<string>();
-                    if (!string.IsNullOrWhiteSpace(viaCepResult.Logradouro)) partes.Add(viaCepResult.Logradouro);
-                    if (!string.IsNullOrWhiteSpace(viaCepResult.Bairro)) partes.Add(viaCepResult.Bairro);
-                    partes.Add(viaCepResult.Localidade);
-                    queryParaGeocoder = string.Join(", ", partes);
-                    cidadeEfetiva = viaCepResult.Localidade;
-                    estadoEfetivo = viaCepResult.Uf;
                     _logger.LogInformation(
-                        "ViaCEP resolveu {Endereco} -> {Query} ({Cidade}/{Uf})",
-                        endereco, queryParaGeocoder, cidadeEfetiva, estadoEfetivo);
+                        "ViaCEP resolveu {Endereco} -> {Logradouro}, {Localidade}/{Uf}",
+                        endereco, viaCepResult.Logradouro, viaCepResult.Localidade, viaCepResult.Uf);
+
+                    // Candidata 1: logradouro + cidade + uf (melhor precisao, ~rua exata).
+                    if (!string.IsNullOrWhiteSpace(viaCepResult.Logradouro))
+                    {
+                        candidates.Add((viaCepResult.Logradouro, viaCepResult.Localidade, viaCepResult.Uf));
+                    }
+                    // Candidata 2: so cidade + uf (precisao "centro da cidade", suficiente
+                    // para o uso de import-por-raio onde o centro da busca e a cidade).
+                    candidates.Add((viaCepResult.Localidade, viaCepResult.Localidade, viaCepResult.Uf));
                 }
                 else
                 {
@@ -94,13 +99,20 @@ public class GeocodingService : IGeocodingService
                 }
             }
 
-            _logger.LogInformation(
-                "Geocodificando endereco via {Provider}: {Endereco}",
-                _provider.ProviderName,
-                queryParaGeocoder);
+            // Sempre inclui a query original como ultimo fallback (cobre tanto enderecos
+            // textuais que pulam o ViaCEP quanto CEPs que o ViaCEP rejeitou).
+            candidates.Add((endereco, cidade, estado));
 
-            // Chama provedor externo
-            var resultado_obtido = await _provider.GeocodeAsync(queryParaGeocoder, cidadeEfetiva, estadoEfetivo, cancellationToken);
+            GeocodeResult? resultado_obtido = null;
+            foreach (var (candEndereco, candCidade, candEstado) in candidates)
+            {
+                _logger.LogInformation(
+                    "Geocodificando via {Provider}: {Endereco} ({Cidade}/{Estado})",
+                    _provider.ProviderName, candEndereco, candCidade, candEstado);
+
+                resultado_obtido = await _provider.GeocodeAsync(candEndereco, candCidade, candEstado, cancellationToken);
+                if (resultado_obtido != null) break;
+            }
 
             if (resultado_obtido != null)
             {

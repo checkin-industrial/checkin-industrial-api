@@ -39,6 +39,13 @@ public sealed partial class ViaCepClient : IViaCepClient
     public static readonly Regex CepRegex = MyRegex();
 
     private const string BaseUrl = "https://viacep.com.br/ws";
+    // ViaCEP retorna campos em camelCase minusculo (cep, logradouro, localidade, uf).
+    // System.Text.Json default eh case-sensitive — sem isso, raw.Localidade fica null
+    // mesmo com a resposta correta e a feature vira degrada pra fallback Nominatim.
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+    };
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<ViaCepClient> _logger;
 
@@ -80,7 +87,7 @@ public sealed partial class ViaCepClient : IViaCepClient
             }
 
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            var raw = JsonSerializer.Deserialize<ViaCepRawResponse>(body);
+            var raw = JsonSerializer.Deserialize<ViaCepRawResponse>(body, JsonOptions);
 
             // ViaCEP retorna 200 com `{ "erro": "true" }` (ou true bool) em CEP inválido.
             if (raw is null || raw.Erro is { } erro && (erro.ValueKind == JsonValueKind.True ||

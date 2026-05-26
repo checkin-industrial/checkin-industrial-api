@@ -13,7 +13,7 @@ namespace AppTurismoIndustrial.Api.Tests.Services;
 public class ImportFromGoogleMapsServiceTests
 {
     [Fact]
-    public async Task Import_DeveCriarEmpresasComStatusAguardandoRevisao()
+    public async Task Import_DeveCriarCandidatesPendentes()
     {
         var ctx = CreateContext();
         var geocoding = MockGeocoding(-22.5m, -49.0m);
@@ -30,43 +30,55 @@ public class ImportFromGoogleMapsServiceTests
         });
 
         Assert.Equal(2, result.Encontrados);
-        Assert.Equal(2, result.Criados);
-        Assert.Equal(0, result.Atualizados);
-        Assert.Equal(0, result.Ignorados);
+        Assert.Equal(2, result.CandidatesCriados);
+        Assert.Equal(0, result.CandidatesAtualizados);
+        Assert.Equal(0, result.CandidatesIgnorados);
 
+        // Empresas tabela continua vazia — fluxo novo nao cria empresa direto.
         var empresas = await ctx.Empresas.AsNoTracking().ToListAsync();
-        Assert.Equal(2, empresas.Count);
-        Assert.All(empresas, e => Assert.Equal(StatusEmpresa.AguardandoRevisao, e.Status));
-        Assert.All(empresas, e => Assert.Null(e.Cnpj));
-        Assert.Contains(empresas, e => e.GooglePlaceId == "PLACE-1" && e.Telefone == "(14) 3000-0000");
+        Assert.Empty(empresas);
+
+        // Candidates tabela recebe os 2 itens, todos com status Pendente em todos os destinos.
+        var candidates = await ctx.GoogleMapsImportCandidates.AsNoTracking().ToListAsync();
+        Assert.Equal(2, candidates.Count);
+        Assert.All(candidates, c => Assert.Equal(CandidatePromotionStatus.Pendente, c.EmpresaStatus));
+        Assert.All(candidates, c => Assert.Equal(CandidatePromotionStatus.Pendente, c.PontoStatus));
+        Assert.All(candidates, c => Assert.Equal(CandidatePromotionStatus.Pendente, c.TelefoneStatus));
+        Assert.All(candidates, c => Assert.Null(c.EmpresaId));
+        Assert.All(candidates, c => Assert.Equal("17000000", c.CepOrigem));
+        Assert.Contains(candidates, c => c.GooglePlaceId == "PLACE-1" && c.Telefone == "(14) 3000-0000");
 
         var logs = await ctx.GoogleMapsImportLogs.AsNoTracking().ToListAsync();
         Assert.Single(logs);
-        Assert.Equal(2, logs[0].EmpresasCriadas);
+        Assert.Equal(2, logs[0].EmpresasCriadas);  // contador legacy reusado p/ candidates
     }
 
     [Fact]
-    public async Task Import_DeveEnriquecerEmpresaExistentePorGooglePlaceId()
+    public async Task Import_DeveEnriquecerCandidateExistentePorGooglePlaceId()
     {
         var ctx = CreateContext();
-        ctx.Empresas.Add(new Empresa
+        var logExistente = new GoogleMapsImportLog
         {
             Id = Guid.NewGuid(),
+            Cep = "17000000",
+            RaioMetros = 800,
+            Tipo = "loja",
+            LatitudeOrigem = -22.5m,
+            LongitudeOrigem = -49.0m,
+        };
+        ctx.GoogleMapsImportLogs.Add(logExistente);
+        ctx.GoogleMapsImportCandidates.Add(new GoogleMapsImportCandidate
+        {
+            Id = Guid.NewGuid(),
+            GoogleMapsImportLogId = logExistente.Id,
             GooglePlaceId = "PLACE-1",
-            RazaoSocial = "Existente",
-            NomeFantasia = "Existente",
-            CnaePrincipal = "0000000",
-            DescricaoCnae = "antigo",
-            Setor = SetorEmpresa.Comercio,
-            Porte = PorteEmpresa.Me,
-            Endereco = "(sem endereco)",
-            Municipio = "Importado",
-            MatrizOuFilial = MatrizOuFilialEmpresa.Matriz,
+            Nome = "Empresa A",
+            FormattedAddress = null,  // vazio - vai ser enriquecido
             Latitude = -22.5m,
             Longitude = -49.0m,
-            SituacaoCadastral = SituacaoCadastral.Ativa,
-            Status = StatusEmpresa.AguardandoRevisao,
-            Telefone = null,
+            Telefone = null,  // vazio - vai ser enriquecido
+            TypesJson = "[]",
+            CepOrigem = "17000000",
         });
         await ctx.SaveChangesAsync();
 
@@ -82,36 +94,43 @@ public class ImportFromGoogleMapsServiceTests
             Tipo = "loja",
         });
 
-        Assert.Equal(1, result.Atualizados);
-        Assert.Equal(0, result.Criados);
+        Assert.Equal(1, result.CandidatesAtualizados);
+        Assert.Equal(0, result.CandidatesCriados);
 
-        var existente = await ctx.Empresas.AsNoTracking().FirstAsync(e => e.GooglePlaceId == "PLACE-1");
+        var existente = await ctx.GoogleMapsImportCandidates.AsNoTracking().FirstAsync(c => c.GooglePlaceId == "PLACE-1");
         Assert.Equal("(14) 9999-9999", existente.Telefone);
-        Assert.Equal("Rua A, 100 - novo", existente.Endereco);
+        Assert.Equal("Rua A, 100 - novo", existente.FormattedAddress);
     }
 
     [Fact]
-    public async Task Import_DeveIgnorarQuandoEmpresaJaTemDadosCompletos()
+    public async Task Import_DeveIgnorarQuandoCandidateJaTemDadosCompletos()
     {
         var ctx = CreateContext();
-        ctx.Empresas.Add(new Empresa
+        var logExistente = new GoogleMapsImportLog
         {
             Id = Guid.NewGuid(),
+            Cep = "17000000",
+            RaioMetros = 800,
+            Tipo = "loja",
+            LatitudeOrigem = -22.5m,
+            LongitudeOrigem = -49.0m,
+        };
+        ctx.GoogleMapsImportLogs.Add(logExistente);
+        // Types JSON pre-existente identico ao que vamos retornar do Google,
+        // garantindo que EnriquecerCandidate nao detecte mudancas.
+        var typesJsonExistente = System.Text.Json.JsonSerializer.Serialize(new[] { "store" });
+        ctx.GoogleMapsImportCandidates.Add(new GoogleMapsImportCandidate
+        {
+            Id = Guid.NewGuid(),
+            GoogleMapsImportLogId = logExistente.Id,
             GooglePlaceId = "PLACE-1",
-            RazaoSocial = "Existente",
-            NomeFantasia = "Existente",
-            CnaePrincipal = "0000000",
-            DescricaoCnae = "ok",
-            Setor = SetorEmpresa.Comercio,
-            Porte = PorteEmpresa.Me,
-            Endereco = "Rua existente, 50",
-            Telefone = "(14) 1111-1111",
-            Municipio = "Bauru",
-            MatrizOuFilial = MatrizOuFilialEmpresa.Matriz,
+            Nome = "Empresa A",
+            FormattedAddress = "Rua existente, 50",
             Latitude = -22.5m,
             Longitude = -49.0m,
-            SituacaoCadastral = SituacaoCadastral.Ativa,
-            Status = StatusEmpresa.Ativo,
+            Telefone = "(14) 1111-1111",
+            TypesJson = typesJsonExistente,
+            CepOrigem = "17000000",
         });
         await ctx.SaveChangesAsync();
 
@@ -127,11 +146,11 @@ public class ImportFromGoogleMapsServiceTests
             Tipo = "loja",
         });
 
-        Assert.Equal(1, result.Ignorados);
+        Assert.Equal(1, result.CandidatesIgnorados);
         // Dados preservados (nunca sobrescreve).
-        var existente = await ctx.Empresas.AsNoTracking().FirstAsync(e => e.GooglePlaceId == "PLACE-1");
+        var existente = await ctx.GoogleMapsImportCandidates.AsNoTracking().FirstAsync(c => c.GooglePlaceId == "PLACE-1");
         Assert.Equal("(14) 1111-1111", existente.Telefone);
-        Assert.Equal("Rua existente, 50", existente.Endereco);
+        Assert.Equal("Rua existente, 50", existente.FormattedAddress);
     }
 
     [Fact]

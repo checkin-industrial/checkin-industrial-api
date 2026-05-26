@@ -12,15 +12,28 @@ public static class GoogleMapsImportModule
             http.Timeout = TimeSpan.FromSeconds(10);
         });
         services.AddScoped<IImportFromGoogleMapsService, ImportFromGoogleMapsService>();
+        services.AddScoped<IImportCandidateService, ImportCandidateService>();
         return services;
     }
 
     public static IEndpointRouteBuilder MapGoogleMapsImportEndpoints(this IEndpointRouteBuilder endpoints)
     {
-        var group = endpoints.MapGroup("/api/empresas/import")
+        // Endpoint historico de disparar import via Google Maps. Agora cria candidates
+        // (triagem) em vez de Empresas direto.
+        var importGroup = endpoints.MapGroup("/api/empresas/import")
             .WithTags("EmpresasImport");
+        importGroup.MapImportFromGoogleMaps().RequireAuthorization();
 
-        group.MapImportFromGoogleMaps().RequireAuthorization();
+        // Endpoints da triagem (admin promove/rejeita candidates por destino).
+        var candidatesGroup = endpoints.MapGroup("/api/import/candidates")
+            .WithTags("ImportCandidates");
+        candidatesGroup.MapListImportCandidates().RequireAuthorization();
+        candidatesGroup.MapGetImportCandidateById().RequireAuthorization();
+        candidatesGroup.MapPromoteCandidateToEmpresa().RequireAuthorization();
+        candidatesGroup.MapPromoteCandidateToPonto().RequireAuthorization();
+        candidatesGroup.MapPromoteCandidateToTelefone().RequireAuthorization();
+        candidatesGroup.MapRejectImportCandidate().RequireAuthorization();
+
         return endpoints;
     }
 }

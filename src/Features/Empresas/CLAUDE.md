@@ -56,6 +56,34 @@ Ver `Importacao/CLAUDE.md` (a criar quando relevante). Resumo:
 - GET `/api/import/empresas/exportar-ansi` retorna CSV Windows-1252 (Excel legacy).
 - Helpers compartilhados em `EmpresaCsvFormatter.cs` (formatacao de CNPJ com `'` prefix, coordenadas pt-BR).
 
+## Triagem (GoogleMapsImportCandidate) — fluxo novo de import
+
+O fluxo de import via Google Maps foi reestruturado: agora cria **candidatos de
+triagem** em vez de Empresas direto. O admin decide individualmente, por destino,
+o que fazer com cada candidato:
+
+- Promover para **Empresa** (edita CNPJ/CNAE/setor antes de salvar)
+- Promover para **Ponto Institucional** (escolhe tipo, descrição, cor/ícone)
+- Promover para **Telefone Útil** (escolhe categoria)
+- **Rejeitar** (soft, audit-friendly) — por destino independente
+
+O mesmo candidato pode ser promovido para múltiplos destinos simultaneamente
+(ex: empresa Apple Inc + ponto institucional "Apple Store" + telefone útil
+do SAC). Cada destino tem status próprio (Pendente/Aprovado/Rejeitado) com
+ID da entidade-fim e timestamp de decisão.
+
+Endpoints (todos `RequireAuthorization`):
+
+- `GET /api/import/candidates` — lista, filtro opcional `?status=pendente|aprovado|rejeitado` casa contra qualquer destino
+- `GET /api/import/candidates/{id}`
+- `POST /api/import/candidates/{id}/promote-empresa` — body: `DTOEmpresaCriar`
+- `POST /api/import/candidates/{id}/promote-ponto` — body: `DTOPontoInstitucionalCriar`
+- `POST /api/import/candidates/{id}/promote-telefone` — body: `DTOTelefoneUtilCriar`
+- `POST /api/import/candidates/{id}/reject?destino=empresa|ponto|telefone`
+
+Decisões são **terminais** (Conflict 409 ao tentar re-decidir). Pra desfazer,
+o admin deleta a entidade-fim no CRUD próprio dela.
+
 ## GoogleMapsImport (sub-feature)
 
 POST `/api/empresas/import/google-maps` (**X-Api-Key**). Recebe `{ cep, raioMetros, tipo }`,

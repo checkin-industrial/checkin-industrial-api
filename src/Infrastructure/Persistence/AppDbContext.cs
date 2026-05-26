@@ -14,6 +14,7 @@ public class AppDbContext : DbContext
     public DbSet<PontoInstitucional> PontosInstitucionais => Set<PontoInstitucional>();
     public DbSet<TelefoneUtil> TelefonesUteis => Set<TelefoneUtil>();
     public DbSet<GoogleMapsImportLog> GoogleMapsImportLogs => Set<GoogleMapsImportLog>();
+    public DbSet<GoogleMapsImportCandidate> GoogleMapsImportCandidates => Set<GoogleMapsImportCandidate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

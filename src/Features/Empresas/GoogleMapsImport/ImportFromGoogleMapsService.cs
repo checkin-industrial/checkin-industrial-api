@@ -80,12 +80,15 @@ public class ImportFromGoogleMapsService : IImportFromGoogleMapsService
 
             log.ResponseRaw = googleResp.RawJson ?? "{}";
 
-            response = await ProcessPlacesAsync(googleResp.Places, tipoBusca, cancellationToken);
+            response = await ProcessPlacesAsync(googleResp.Places, log.Id, request.Cep, cancellationToken);
             response.OperacaoId = log.Id;
 
-            log.EmpresasCriadas = response.Criados;
-            log.EmpresasAtualizadas = response.Atualizados;
-            log.EmpresasIgnoradas = response.Ignorados;
+            // Reusa os campos historicos do log pra contabilizar candidates
+            // (renomear as colunas exigiria migration extra; semanticamente
+            // EmpresasCriadas = "candidates criados nesta operacao").
+            log.EmpresasCriadas = response.CandidatesCriados;
+            log.EmpresasAtualizadas = response.CandidatesAtualizados;
+            log.EmpresasIgnoradas = response.CandidatesIgnorados;
         }
         catch (Exception ex)
         {
@@ -100,15 +103,19 @@ public class ImportFromGoogleMapsService : IImportFromGoogleMapsService
         return response;
     }
 
+    // Cria/atualiza candidates de triagem (admin promove pra Empresa/Ponto/Telefone
+    // depois via endpoints separados). Diferenca chave vs. fluxo antigo: nao cria
+    // entidade-fim direto, evita poluir Empresas com dados pre-revisao.
     private async Task<DTOImportFromGoogleMapsResponse> ProcessPlacesAsync(
         IReadOnlyList<GooglePlace> places,
-        GooglePlaceTypeMapping.TipoBusca tipoBusca,
+        Guid logId,
+        string cepOrigem,
         CancellationToken cancellationToken)
     {
         var placeIds = places.Select(p => p.Id).ToList();
-        var existentes = await _db.Empresas
-            .Where(e => e.GooglePlaceId != null && placeIds.Contains(e.GooglePlaceId))
-            .ToDictionaryAsync(e => e.GooglePlaceId!, cancellationToken);
+        var existentes = await _db.GoogleMapsImportCandidates
+            .Where(c => placeIds.Contains(c.GooglePlaceId))
+            .ToDictionaryAsync(c => c.GooglePlaceId, cancellationToken);
 
         var itens = new List<DTOImportResultItem>(places.Count);
         int criados = 0, atualizados = 0, ignorados = 0;
@@ -117,7 +124,7 @@ public class ImportFromGoogleMapsService : IImportFromGoogleMapsService
         {
             if (existentes.TryGetValue(p.Id, out var existente))
             {
-                var enriquecido = EnriquecerEmpresa(existente, p);
+                var enriquecido = EnriquecerCandidate(existente, p);
                 if (enriquecido)
                 {
                     atualizados++;
@@ -126,7 +133,7 @@ public class ImportFromGoogleMapsService : IImportFromGoogleMapsService
                         GooglePlaceId = p.Id,
                         Nome = p.DisplayName ?? string.Empty,
                         Acao = "atualizado",
-                        EmpresaId = existente.Id,
+                        CandidateId = existente.Id,
                     });
                 }
                 else
@@ -137,22 +144,22 @@ public class ImportFromGoogleMapsService : IImportFromGoogleMapsService
                         GooglePlaceId = p.Id,
                         Nome = p.DisplayName ?? string.Empty,
                         Acao = "ignorado",
-                        EmpresaId = existente.Id,
-                        Motivo = "Sem campos novos para enriquecer.",
+                        CandidateId = existente.Id,
+                        Motivo = "Candidate ja existia, sem campos novos para enriquecer.",
                     });
                 }
             }
             else
             {
-                var novo = CriarEmpresaDeGoogle(p, tipoBusca);
-                _db.Empresas.Add(novo);
+                var novo = CriarCandidateDeGoogle(p, logId, cepOrigem);
+                _db.GoogleMapsImportCandidates.Add(novo);
                 criados++;
                 itens.Add(new DTOImportResultItem
                 {
                     GooglePlaceId = p.Id,
                     Nome = p.DisplayName ?? string.Empty,
                     Acao = "criado",
-                    EmpresaId = novo.Id,
+                    CandidateId = novo.Id,
                 });
             }
         }
@@ -160,55 +167,54 @@ public class ImportFromGoogleMapsService : IImportFromGoogleMapsService
         return new DTOImportFromGoogleMapsResponse
         {
             Encontrados = places.Count,
-            Criados = criados,
-            Atualizados = atualizados,
-            Ignorados = ignorados,
+            CandidatesCriados = criados,
+            CandidatesAtualizados = atualizados,
+            CandidatesIgnorados = ignorados,
             Itens = itens,
         };
     }
 
-    private static Empresa CriarEmpresaDeGoogle(GooglePlace p, GooglePlaceTypeMapping.TipoBusca tipoBusca)
+    private static GoogleMapsImportCandidate CriarCandidateDeGoogle(
+        GooglePlace p, Guid logId, string cepOrigem)
     {
-        var nome = !string.IsNullOrWhiteSpace(p.DisplayName) ? p.DisplayName! : "(sem nome - revisar)";
-        return new Empresa
+        var nome = !string.IsNullOrWhiteSpace(p.DisplayName) ? p.DisplayName! : "(sem nome)";
+        var typesJson = System.Text.Json.JsonSerializer.Serialize(p.Types);
+        return new GoogleMapsImportCandidate
         {
-            // Cnpj null - admin preenche antes de reativar
-            RazaoSocial = Truncar(nome, 200),
-            NomeFantasia = Truncar(nome, 200),
-            // CNAE generico - revisar manualmente
-            CnaePrincipal = "0000000",
-            DescricaoCnae = Truncar(string.Join(",", p.Types), 300),
-            Setor = tipoBusca.SetorDefault,
-            Porte = PorteEmpresa.Me,
-            Endereco = Truncar(p.FormattedAddress ?? "(sem endereco)", 300),
-            Telefone = p.NationalPhoneNumber ?? p.InternationalPhoneNumber,
-            // CEP nao vem do Places diretamente, deixa null
-            Municipio = "Importado",
-            MatrizOuFilial = MatrizOuFilialEmpresa.Matriz,
+            GoogleMapsImportLogId = logId,
+            GooglePlaceId = p.Id,
+            Nome = Truncar(nome, 200),
+            FormattedAddress = Truncar(p.FormattedAddress ?? string.Empty, 500),
             Latitude = (decimal)p.Latitude,
             Longitude = (decimal)p.Longitude,
-            SituacaoCadastral = SituacaoCadastral.Ativa,
-            GooglePlaceId = p.Id,
-            Status = StatusEmpresa.AguardandoRevisao,  // ⭐ admin revisa antes de publicar
+            Telefone = p.NationalPhoneNumber ?? p.InternationalPhoneNumber,
+            TypesJson = typesJson,
+            CepOrigem = string.IsNullOrWhiteSpace(cepOrigem) ? null : cepOrigem,
         };
     }
 
-    // Enriquecimento conservador: nunca sobrescreve dado preenchido com algo do Google.
-    // Apenas preenche campos vazios (telefone, endereco mais rico, coordenadas mais precisas).
-    private static bool EnriquecerEmpresa(Empresa empresa, GooglePlace p)
+    // Enriquecimento conservador: nao sobrescreve dado preenchido com algo do Google.
+    // Apenas preenche campos vazios + sempre atualiza types/coords (info volatil).
+    private static bool EnriquecerCandidate(GoogleMapsImportCandidate c, GooglePlace p)
     {
         var mudou = false;
 
-        if (string.IsNullOrWhiteSpace(empresa.Telefone) && !string.IsNullOrWhiteSpace(p.NationalPhoneNumber))
+        if (string.IsNullOrWhiteSpace(c.Telefone) && !string.IsNullOrWhiteSpace(p.NationalPhoneNumber))
         {
-            empresa.Telefone = p.NationalPhoneNumber;
+            c.Telefone = p.NationalPhoneNumber;
             mudou = true;
         }
 
-        if ((string.IsNullOrWhiteSpace(empresa.Endereco) || empresa.Endereco.Equals("(sem endereco)", StringComparison.Ordinal))
-            && !string.IsNullOrWhiteSpace(p.FormattedAddress))
+        if (string.IsNullOrWhiteSpace(c.FormattedAddress) && !string.IsNullOrWhiteSpace(p.FormattedAddress))
         {
-            empresa.Endereco = Truncar(p.FormattedAddress!, 300);
+            c.FormattedAddress = Truncar(p.FormattedAddress!, 500);
+            mudou = true;
+        }
+
+        var typesJsonAtual = System.Text.Json.JsonSerializer.Serialize(p.Types);
+        if (!string.Equals(c.TypesJson, typesJsonAtual, StringComparison.Ordinal))
+        {
+            c.TypesJson = typesJsonAtual;
             mudou = true;
         }
 
